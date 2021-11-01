@@ -1,5 +1,5 @@
 import pygame
-from pygame.locals import K_LEFT, K_RIGHT, K_SPACE, K_z
+from pygame.locals import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP, K_z
 
 from .constants import BLUE, GRAVITY, GRAY, MAP, TILE_SIZE
 
@@ -134,6 +134,13 @@ class Level:
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
 
+    def look_around(self):
+        keys = pygame.key.get_pressed()
+        if keys[K_UP]:
+            self.true_scroll[1] -= 6.5
+        elif keys[K_DOWN]:
+            self.true_scroll[1] += 6.5
+
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618) / 25
@@ -144,6 +151,7 @@ class Level:
 
     def run(self):
         # update scroll values
+        self.look_around()
         self.update_scroll()
 
         # update and draw tiles

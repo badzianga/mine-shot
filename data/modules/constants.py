@@ -1,5 +1,6 @@
 # settings constants
-SCREEN_SIZE = (1280, 720) 
+SCREEN_SIZE = (1280, 720)
+FPS = 60
 TILE_SIZE = 64
 GRAVITY = 0.8
 
@@ -7,6 +8,8 @@ GRAVITY = 0.8
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 GRAY = (128, 128, 128)
+LIGHT_PURPLE = (128, 128, 255)
+WHITE = (255, 255, 255)
 
 # temporary map
 MAP = (

@@ -1,7 +1,7 @@
 import pygame
-from pygame.locals import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP, K_z
 
-from .constants import BLUE, GRAVITY, GRAY, MAP, TILE_SIZE
+from .constants import (BLUE, GRAVITY, GRAY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
+                        TILE_SIZE, WHITE)
 
 
 class Player(pygame.sprite.Sprite):
@@ -9,7 +9,7 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
 
         # image - temporarily just a single-color surface
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
+        self.image = pygame.Surface((TILE_SIZE // 2, TILE_SIZE - 8))
         self.image.fill(BLUE)
 
         # collision rect
@@ -21,22 +21,10 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = -18
         self.on_ground = False
 
-    def get_inputs(self):
-        keys = pygame.key.get_pressed()
-
-        # move left
-        if keys[K_LEFT]:
-            self.vector.x = -self.speed
-        # or move right
-        elif keys[K_RIGHT]:
-            self.vector.x = self.speed
-        # or stop moving
-        else:
-            self.vector.x = 0
-        # jump
-        if (keys[K_SPACE] or keys[K_z]) and self.on_ground:
-            self.vector.y = self.jump_speed
-            self.on_ground = False
+        # pressed keys
+        self.left = False
+        self.right = False
+        self.jump = False
 
     def check_collisions(self, tiles):
         # update x position
@@ -82,8 +70,20 @@ class Player(pygame.sprite.Sprite):
         # apply gravity
         self.vector.y += GRAVITY
 
-        # get inputs and update player position
-        self.get_inputs()
+        # move left
+        if self.left:
+            self.vector.x = -self.speed
+        # or move right
+        elif self.right:
+            self.vector.x = self.speed
+        # or stop moving
+        else:
+            self.vector.x = 0
+        # jump
+        if self.jump and self.on_ground:
+            self.vector.y = self.jump_speed
+            self.jump = False
+            self.on_ground = False
 
         # check collisions and fix position
         self.check_collisions(tiles)
@@ -120,6 +120,10 @@ class Level:
         self.true_scroll = [0, 0]
         self.scroll = [0, 0]
 
+        # pressed keys
+        self.key_up = False
+        self.key_down = False
+
         # load level - load tiles to self.tiles
         self.load_level()
 
@@ -134,13 +138,6 @@ class Level:
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
 
-    def look_around(self):
-        keys = pygame.key.get_pressed()
-        if keys[K_UP]:
-            self.true_scroll[1] -= 6.5
-        elif keys[K_DOWN]:
-            self.true_scroll[1] += 6.5
-
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618) / 25
@@ -151,11 +148,62 @@ class Level:
 
     def run(self):
         # update scroll values
-        self.look_around()
         self.update_scroll()
+
+        # look up and down
+        if self.key_up:
+            self.true_scroll[1] -= 6.5
+        if self.key_down:
+            self.true_scroll[1] += 6.5
 
         # update and draw tiles
         self.tiles.update(self.screen, self.scroll)
 
         # update and draw player
         self.player.update(self.screen, self.scroll, self.tiles)
+
+
+class Menu:
+    def __init__(self):
+        # menu font
+        self.font = pygame.font.Font("data/fonts/Pixellari.ttf", 48)
+
+        # texts and positions
+        self.texts = ("Start New Game", "Exit")
+        self.positions = (
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 64),
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 128),
+        )
+
+        # highlighted menu option (by default - start new game)
+        self.highlighted = 0
+
+        # pressed keys
+        self.key_up = False
+        self.key_down = False
+
+    def draw(self, screen):
+        for i, text in enumerate(self.texts):
+            if i == self.highlighted:
+                text_surface = self.font.render(text, True, LIGHT_PURPLE)
+            else:
+                text_surface = self.font.render(text, True, WHITE)
+            text_rect = text_surface.get_rect(center=self.positions[i])
+            screen.blit(text_surface, text_rect)
+
+    def update(self):
+        # move highlight up
+        if self.key_up:
+            self.key_up = False
+            if self.highlighted == 0:
+                self.highlighted = 1
+            else:
+                self.highlighted -= 1
+
+        # or move highlight down
+        elif self.key_down:
+            self.key_down = False
+            if self.highlighted == 1:
+                self.highlighted = 0
+            else:
+                self.highlighted += 1

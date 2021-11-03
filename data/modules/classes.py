@@ -1,7 +1,10 @@
+from random import randint
+
 import pygame
 
-from .constants import (BLUE, GRAVITY, GRAY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
-                        TILE_SIZE, WHITE, BROWN)
+from .constants import (BLUE, GRAVITY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
+                        TILE_SIZE, WHITE)
+from .functions import load_images
 
 
 class Player(pygame.sprite.Sprite):
@@ -43,13 +46,13 @@ class Player(pygame.sprite.Sprite):
 
                 # go up
                 if self.up:
-                    self.vector.y -= self.speed
+                    self.vector.y -= self.speed * 0.75
                     if not self.climbing:
                         self.climbing = True
 
                 # go down
                 if self.down:
-                    self.vector.y += self.speed
+                    self.vector.y += self.speed * 0.75
                     if not self.climbing:
                         self.climbing = True
 
@@ -128,14 +131,10 @@ class Player(pygame.sprite.Sprite):
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, position):
+    def __init__(self, position, image):
         super().__init__()
 
-        # image - temporarily just a single-color surface
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(GRAY)
-
-        # collision rect
+        self.image = image
         self.rect = self.image.get_rect(topleft=position)
 
     def update(self, screen, scroll):
@@ -143,11 +142,29 @@ class Tile(pygame.sprite.Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
-class Ladder(Tile):
-    def __init__(self, position):
-        super().__init__(position)
-        self.image.fill(BROWN)
+class Torch(pygame.sprite.Sprite):
+    def __init__(self, position, images):
+        super().__init__()
 
+        self.animation = images
+        self.ANIMATION_LENGTH = len(self.animation)
+        self.frame_index = randint(0, self.ANIMATION_LENGTH - 1)
+        self.COOLDOWN = 0.2
+        self.image = self.animation[self.frame_index]
+
+        self.rect = self.animation[0].get_rect(topleft=position)
+
+    def update(self, screen, scroll):
+        # update animation frame
+        self.frame_index += self.COOLDOWN
+        if self.frame_index >= self.ANIMATION_LENGTH:
+            self.frame_index = 0
+
+        # set new frame to the image
+        self.image = self.animation[int(self.frame_index)]
+
+        # draw torch
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 class Level:
     def __init__(self, screen):
@@ -156,6 +173,7 @@ class Level:
         # groups and single objects
         self.tiles = pygame.sprite.Group()
         self.ladders = pygame.sprite.Group()
+        self.torches = pygame.sprite.Group()
         self.player = None
 
         # scrolling
@@ -170,17 +188,26 @@ class Level:
         self.load_level()
 
     def load_level(self):
+        # images 
+        stone_img = pygame.transform.scale2x(pygame.transform.scale2x(pygame.image.load("data/img/stone.png").convert()))
+        ladder_img = pygame.image.load("data/img/ladder.png").convert_alpha()
+        torch_imgs = load_images("data/img/torch", "torch")
         # temporary, loads level data from tuple
         for y, row in enumerate(MAP):
             for x, cell in enumerate(row):
                 # create stone tiles
                 if cell == "X":
-                    self.tiles.add(Tile((x * TILE_SIZE, y * TILE_SIZE)))
+                    self.tiles.add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
+                # create ladders
                 elif cell == "L":
-                    self.ladders.add(Ladder((x * TILE_SIZE, y * TILE_SIZE)))
+                    self.ladders.add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
+                # create torches
+                elif cell == "T":
+                    self.torches.add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
+                    # I wanted torches between two tiles, that's why -32
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -203,6 +230,9 @@ class Level:
         # update and draw tiles
         self.tiles.update(self.screen, self.scroll)
         self.ladders.update(self.screen, self.scroll)
+
+        # update and draw torches
+        self.torches.update(self.screen, self.scroll)
 
         # update and draw player
         self.player.update(self.screen, self.scroll, self.tiles, self.ladders)

@@ -1,7 +1,7 @@
 import pygame
 
 from .constants import (BLUE, GRAVITY, GRAY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
-                        TILE_SIZE, WHITE)
+                        TILE_SIZE, WHITE, BROWN)
 
 
 class Player(pygame.sprite.Sprite):
@@ -20,13 +20,44 @@ class Player(pygame.sprite.Sprite):
         self.vector = pygame.math.Vector2(0, 0)  # direction of movement
         self.jump_speed = -18
         self.on_ground = False
+        self.climbing = False
 
         # pressed keys
+        self.up = False
+        self.down = False
         self.left = False
         self.right = False
         self.jump = False
 
-    def check_collisions(self, tiles):
+    def check_ladder_collisions(self, ladders):
+        ladder_collision = False
+        
+        for ladder in ladders:
+            if self.rect.colliderect(ladder.rect):
+                ladder_collision = True
+
+                # center player on the ladder
+                if self.climbing:
+                    self.vector.y = 0
+                    self.rect.centerx = ladder.rect.centerx
+
+                # go up
+                if self.up:
+                    self.vector.y -= self.speed
+                    if not self.climbing:
+                        self.climbing = True
+
+                # go down
+                if self.down:
+                    self.vector.y += self.speed
+                    if not self.climbing:
+                        self.climbing = True
+
+        # allow moving when on top of ladder
+        if not ladder_collision:
+            self.climbing = False
+
+    def check_tile_collisions(self, tiles):
         # update x position
         self.rect.x += self.vector.x
 
@@ -48,11 +79,12 @@ class Player(pygame.sprite.Sprite):
         # check vertical collisions (y)
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
-                # touching floor - stop falling, allow jump
+                # touching floor - stop falling, allow jump, stop climbing
                 if self.vector.y > 0:
                     self.vector.y = 0
                     self.rect.bottom = tile.rect.top
                     self.on_ground = True
+                    self.climbing = False
                     break
                 # touching ceiling - start falling
                 elif self.vector.y < 0:
@@ -66,27 +98,30 @@ class Player(pygame.sprite.Sprite):
         if self.vector.y > 1:
             self.on_ground = False
 
-    def update(self, screen, scroll, tiles):
+    def update(self, screen, scroll, tiles, ladders):
         # apply gravity
         self.vector.y += GRAVITY
 
+        self.check_ladder_collisions(ladders)
+
         # move left
-        if self.left:
+        if self.left and not self.climbing:
             self.vector.x = -self.speed
         # or move right
-        elif self.right:
+        elif self.right and not self.climbing:
             self.vector.x = self.speed
         # or stop moving
         else:
             self.vector.x = 0
-        # jump
-        if self.jump and self.on_ground:
+        # jump (from ground or from ladder)
+        if (self.jump and self.on_ground) or (self.jump and self.climbing):
             self.vector.y = self.jump_speed
             self.jump = False
             self.on_ground = False
+            self.climbing = False
 
         # check collisions and fix position
-        self.check_collisions(tiles)
+        self.check_tile_collisions(tiles)
 
         # draw player
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
@@ -108,12 +143,19 @@ class Tile(pygame.sprite.Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
+class Ladder(Tile):
+    def __init__(self, position):
+        super().__init__(position)
+        self.image.fill(BROWN)
+
+
 class Level:
     def __init__(self, screen):
         self.screen = screen
 
         # groups and single objects
         self.tiles = pygame.sprite.Group()
+        self.ladders = pygame.sprite.Group()
         self.player = None
 
         # scrolling
@@ -137,6 +179,8 @@ class Level:
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
+                elif cell == "L":
+                    self.ladders.add(Ladder((x * TILE_SIZE, y * TILE_SIZE)))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -158,9 +202,10 @@ class Level:
 
         # update and draw tiles
         self.tiles.update(self.screen, self.scroll)
+        self.ladders.update(self.screen, self.scroll)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, self.tiles)
+        self.player.update(self.screen, self.scroll, self.tiles, self.ladders)
 
 
 class Menu:
@@ -169,13 +214,13 @@ class Menu:
         self.font = pygame.font.Font("data/fonts/Pixellari.ttf", 48)
 
         # texts and positions
-        self.texts = ("Start New Game", "Exit")
+        self.texts = ("New Game", "Exit")
         self.positions = (
             (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 64),
             (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 128),
         )
 
-        # highlighted menu option (by default - start new game)
+        # highlighted menu option (by default - new game)
         self.highlighted = 0
 
         # pressed keys

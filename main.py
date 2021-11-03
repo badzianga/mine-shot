@@ -36,12 +36,11 @@ def game_loop():
 
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
-                    pygame.quit()
-                    exit()
+                    main_menu()
                 # move player left
                 if event.key == K_LEFT:
                     level.player.left = True
-                # move player left
+                # move player right
                 if event.key == K_RIGHT:
                     level.player.right = True
                 # jump
@@ -50,9 +49,11 @@ def game_loop():
                 # look up
                 if event.key == K_UP:
                     level.key_up = True
+                    level.player.up = True
                 # look down
                 if event.key == K_DOWN:
                     level.key_down = True
+                    level.player.down = True
 
             if event.type == KEYUP:
                 # stop moving player left
@@ -61,12 +62,17 @@ def game_loop():
                 # stop moving player right
                 if event.key == K_RIGHT:
                     level.player.right = False
+                # stop jumping (there was a bug with double jump without it)
+                if event.key in (K_SPACE, K_z):
+                    level.player.jump = False
                 # stop looking up
                 if event.key == K_UP:
                     level.key_up = False
+                    level.player.up = False
                 # stop looking down
                 if event.key == K_DOWN:
                     level.key_down = False
+                    level.player.down = False
 
         pygame.display.update()
         clock.tick(FPS)

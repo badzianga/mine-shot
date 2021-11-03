@@ -1,4 +1,4 @@
-from random import randint
+from random import choice, randint
 
 import pygame
 
@@ -154,7 +154,7 @@ class Torch(pygame.sprite.Sprite):
 
         self.rect = self.animation[0].get_rect(topleft=position)
 
-    def update(self, screen, scroll):
+    def update(self, screen, scroll, particles_group):
         # update animation frame
         self.frame_index += self.COOLDOWN
         if self.frame_index >= self.ANIMATION_LENGTH:
@@ -166,6 +166,39 @@ class Torch(pygame.sprite.Sprite):
         # draw torch
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
+        # randomly generate particle
+        if randint(1, 25) == 1:
+            particles_group.add(
+                TorchParticle([self.rect.centerx, self.rect.y + 32])
+            )
+
+
+class TorchParticle:
+    def __init__(self, position):
+        self.position = position
+
+        self.velocity = [randint(0, 10) / 10 - 0.5, -3]
+        self.timer = 4.5
+        self.radius = int(self.timer * 2)
+
+        self.COLOR = choice(((235, 83, 28), (240, 240, 31), (247, 215, 36)))
+
+    def update(self, screen, scroll: list):
+        # draw particle
+        pygame.draw.circle(
+            screen, self.COLOR,
+            (int(self.position[0] - scroll[0]), int(self.position[1] - scroll[1])),
+            int(self.timer)
+        )
+
+        # change size and position of the particle
+        self.position[0] += self.velocity[0]
+        self.position[1] += self.velocity[1]
+        self.timer -= 0.04
+        self.velocity[1] += 0.1
+        self.radius = int(self.timer * 2)
+
+
 class Level:
     def __init__(self, screen):
         self.screen = screen
@@ -174,6 +207,7 @@ class Level:
         self.tiles = pygame.sprite.Group()
         self.ladders = pygame.sprite.Group()
         self.torches = pygame.sprite.Group()
+        self.torch_particles = set()
         self.player = None
 
         # scrolling
@@ -231,11 +265,17 @@ class Level:
         self.tiles.update(self.screen, self.scroll)
         self.ladders.update(self.screen, self.scroll)
 
-        # update and draw torches
-        self.torches.update(self.screen, self.scroll)
+        # update and draw torches, create particles
+        self.torches.update(self.screen, self.scroll, self.torch_particles)
 
         # update and draw player
         self.player.update(self.screen, self.scroll, self.tiles, self.ladders)
+
+        # update and draw torch particles
+        for particle in self.torch_particles.copy():
+            particle.update(self.screen, self.scroll)
+            if particle.timer <= 0:
+                self.torch_particles.remove(particle)
 
 
 class Menu:

@@ -16,17 +16,21 @@ pygame.display.set_caption("The Mine")
 
 clock = pygame.time.Clock()
 
-level = Level(screen)
-
 
 # Game loop ----------------------------------------------------------------- #
 def game_loop():
+    level = Level(screen)
+
     while True:
         # clear screen
         screen.fill(BLACK)
 
         # run level
-        level.run()
+        if level.player.health > 0:
+            level.run()
+        # if died, return to main menu
+        else:
+            return
 
         # check events
         for event in pygame.event.get():
@@ -35,8 +39,9 @@ def game_loop():
                 exit()
 
             if event.type == KEYDOWN:
+                # return to main menu
                 if event.key == K_ESCAPE:
-                    main_menu()
+                    return
                 # move player left
                 if event.key == K_LEFT:
                     level.player.left = True

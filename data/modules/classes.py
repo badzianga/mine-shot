@@ -1,9 +1,10 @@
+from math import sin
 from random import choice, randint
 
 import pygame
 
 from .constants import (BLUE, GRAVITY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
-                        TILE_SIZE, WHITE)
+                        TILE_SIZE, WHITE, RED)
 from .functions import load_images
 
 
@@ -25,12 +26,21 @@ class Player(pygame.sprite.Sprite):
         self.on_ground = False
         self.climbing = False
 
+        self.max_health = 20
+        self.health = 20
+        self.invincible = False
+        self.invincibility_duration = 90  # frames
+
         # pressed keys
         self.up = False
         self.down = False
         self.left = False
         self.right = False
         self.jump = False
+
+    def get_damage(self, damage_range):
+        self.health -= randint(damage_range[0], damage_range[1])
+        self.invincible = True
 
     def check_ladder_collisions(self, ladders):
         ladder_collision = False
@@ -101,7 +111,13 @@ class Player(pygame.sprite.Sprite):
         if self.vector.y > 1:
             self.on_ground = False
 
-    def update(self, screen, scroll, tiles, ladders):
+    def check_enemy_collisions(self, enemies):
+        for enemy in enemies:
+            if self.rect.colliderect(enemy.rect):
+                self.get_damage(enemy.damage)
+                break
+
+    def update(self, screen, scroll, tiles, ladders, enemies):
         # apply gravity
         self.vector.y += GRAVITY
 
@@ -126,7 +142,62 @@ class Player(pygame.sprite.Sprite):
         # check collisions and fix position
         self.check_tile_collisions(tiles)
 
+        if not self.invincible:
+            self.check_enemy_collisions(enemies)
+
+        # update invincivbility
+        if self.invincible:
+            self.invincibility_duration -= 1
+            if self.invincibility_duration <= 0:
+                self.invincibility_duration = 90
+                self.invincible = False
+
+        # blinking if damaged
+        if self.invincible:
+            alpha = sin(pygame.time.get_ticks())
+            if alpha >= 0:
+                self.image.set_alpha(255)
+            else:
+                self.image.set_alpha(0)
+        else:
+            self.image.set_alpha(255)
+
         # draw player
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, position):
+        super().__init__()
+        self.image = pygame.Surface((TILE_SIZE // 2, TILE_SIZE - 8))
+        self.image.fill(RED)
+
+        self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
+
+        self.speed = 4
+
+        self.damage = (1, 3)
+
+    def check_horizontal_collisions(self, tiles):
+        # update x position
+        self.rect.x += self.speed
+
+        # check collisions
+        for tile in tiles:
+            if tile.rect.colliderect(self.rect):
+                # touching right wall
+                if self.speed < 0:
+                    self.rect.left = tile.rect.right
+                    self.speed *= -1
+                    break
+                # touching left wall
+                elif self.speed > 0:
+                    self.rect.right = tile.rect.left
+                    self.speed *= -1
+                    break
+
+    def update(self, screen, scroll, tiles):
+        self.check_horizontal_collisions(tiles)
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
@@ -149,7 +220,7 @@ class Torch(pygame.sprite.Sprite):
         self.animation = images
         self.ANIMATION_LENGTH = len(self.animation)
         self.frame_index = randint(0, self.ANIMATION_LENGTH - 1)
-        self.COOLDOWN = 0.2
+        self.COOLDOWN = 0.25
         self.image = self.animation[self.frame_index]
 
         self.rect = self.animation[0].get_rect(topleft=position)
@@ -199,6 +270,23 @@ class TorchParticle:
         self.radius = int(self.timer * 2)
 
 
+class HealthBar:
+    def __init__(self):
+        self.health_border = pygame.transform.scale2x(pygame.image.load("data/img/health_border.png").convert_alpha())
+        self.health_bar = pygame.transform.scale2x(pygame.image.load("data/img/health_bar.png").convert_alpha())
+        self.size = self.health_bar.get_size()
+
+    def update(self, screen, health, max_health):
+        # draw border
+        screen.blit(self.health_border, (SCREEN_SIZE[0] - 185, 18))  # border
+        # draw current health
+        screen.blit(
+            self.health_bar,
+            (SCREEN_SIZE[0] - 181, 20),
+            (0, 0, int(self.size[0] * (health / max_health)), self.size[1])  # width of the bar
+        )
+
+
 class Level:
     def __init__(self, screen):
         self.screen = screen
@@ -208,6 +296,7 @@ class Level:
         self.ladders = pygame.sprite.Group()
         self.torches = pygame.sprite.Group()
         self.torch_particles = set()
+        self.enemies = pygame.sprite.Group()
         self.player = None
 
         # scrolling
@@ -220,6 +309,9 @@ class Level:
 
         # load level - load tiles to self.tiles
         self.load_level()
+
+        # user interface
+        self.health_bar = HealthBar()
 
     def load_level(self):
         # images 
@@ -242,6 +334,9 @@ class Level:
                 elif cell == "T":
                     self.torches.add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
                     # I wanted torches between two tiles, that's why -32
+                # create enemies
+                elif cell == "E":
+                    self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -268,14 +363,20 @@ class Level:
         # update and draw torches, create particles
         self.torches.update(self.screen, self.scroll, self.torch_particles)
 
+        # update and draw enemies
+        self.enemies.update(self.screen, self.scroll, self.tiles)
+
         # update and draw player
-        self.player.update(self.screen, self.scroll, self.tiles, self.ladders)
+        self.player.update(self.screen, self.scroll, self.tiles, self.ladders, self.enemies)
 
         # update and draw torch particles
         for particle in self.torch_particles.copy():
             particle.update(self.screen, self.scroll)
             if particle.timer <= 0:
                 self.torch_particles.remove(particle)
+
+        # draw UI
+        self.health_bar.update(self.screen, self.player.health, self.player.max_health)
 
 
 class Menu:

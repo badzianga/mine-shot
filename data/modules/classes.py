@@ -3,7 +3,7 @@ from random import choice, randint
 
 import pygame
 
-from .constants import (BLUE, GRAVITY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
+from .constants import (BLUE, BROWN, GRAVITY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
                         TILE_SIZE, WHITE, RED)
 from .functions import load_images
 
@@ -111,17 +111,39 @@ class Player(pygame.sprite.Sprite):
         if self.vector.y > 1:
             self.on_ground = False
 
+    def check_platform_collisions(self, platforms):
+        collision_rect = pygame.Rect(self.rect.x, self.rect.y + TILE_SIZE - 1, TILE_SIZE, 1)
+        # check 'feet' (collision_rect) colliding with platform
+        for platform in platforms:
+            if platform.rect.colliderect(collision_rect):
+                # touching platform - stop falling, allow jump, stop climbing
+                if self.vector.y > 0:
+                    self.vector.y = 0
+                    self.rect.bottom = platform.rect.top
+                    self.on_ground = True
+                    self.climbing = False
+
+                    # jump from the platform
+                    if self.down and self.jump:
+                        self.on_ground = False
+                        self.vector.y += GRAVITY * 2
+
+                    break
+
     def check_enemy_collisions(self, enemies):
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
                 self.get_damage(enemy.damage)
                 break
 
-    def update(self, screen, scroll, tiles, ladders, enemies):
+    def update(self, screen, scroll, tiles, platforms, ladders, enemies):
         # apply gravity
         self.vector.y += GRAVITY
 
+        # check collisions and fix position
+        self.check_tile_collisions(tiles)
         self.check_ladder_collisions(ladders)
+        self.check_platform_collisions(platforms)
 
         # move left
         if self.left and not self.climbing:
@@ -138,9 +160,6 @@ class Player(pygame.sprite.Sprite):
             self.jump = False
             self.on_ground = False
             self.climbing = False
-
-        # check collisions and fix position
-        self.check_tile_collisions(tiles)
 
         if not self.invincible:
             self.check_enemy_collisions(enemies)
@@ -206,7 +225,7 @@ class Enemy(pygame.sprite.Sprite):
             self.check_horizontal_collisions(tiles)
         else:
             self.idling_counter -= 1
-            # afet idle - 
+            # after idle - stop idling, randomly select direction of moving
             if self.idling_counter <= 0:
                 self.idling = False
                 self.speed *= choice((-1, 1))
@@ -307,6 +326,7 @@ class Level:
 
         # groups and single objects
         self.tiles = pygame.sprite.Group()
+        self.platforms = pygame.sprite.Group()
         self.ladders = pygame.sprite.Group()
         self.torches = pygame.sprite.Group()
         self.torch_particles = set()
@@ -332,6 +352,9 @@ class Level:
         stone_img = pygame.transform.scale2x(pygame.transform.scale2x(pygame.image.load("data/img/stone.png").convert()))
         ladder_img = pygame.image.load("data/img/ladder.png").convert_alpha()
         torch_imgs = load_images("data/img/torch", "torch")
+        platform_img = pygame.Surface((TILE_SIZE, int(TILE_SIZE * 1/8)))
+        platform_img.fill(BROWN)
+
         # temporary, loads level data from tuple
         for y, row in enumerate(MAP):
             for x, cell in enumerate(row):
@@ -351,6 +374,8 @@ class Level:
                 # create enemies
                 elif cell == "E":
                     self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
+                elif cell == "_":
+                    self.platforms.add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -374,6 +399,9 @@ class Level:
         self.tiles.update(self.screen, self.scroll)
         self.ladders.update(self.screen, self.scroll)
 
+        # update and draw platforms
+        self.platforms.update(self.screen, self.scroll)
+
         # update and draw torches, create particles
         self.torches.update(self.screen, self.scroll, self.torch_particles)
 
@@ -381,7 +409,7 @@ class Level:
         self.enemies.update(self.screen, self.scroll, self.tiles)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, self.tiles, self.ladders, self.enemies)
+        self.player.update(self.screen, self.scroll, self.tiles, self.platforms, self.ladders, self.enemies)
 
         # update and draw torch particles
         for particle in self.torch_particles.copy():

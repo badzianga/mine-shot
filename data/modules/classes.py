@@ -174,14 +174,12 @@ class Enemy(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
 
-        self.speed = 4
-
+        self.speed = randint(3, 5)
         self.damage = (1, 3)
+        self.idling = False
+        self.idling_counter = 0
 
     def check_horizontal_collisions(self, tiles):
-        # update x position
-        self.rect.x += self.speed
-
         # check collisions
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
@@ -197,7 +195,23 @@ class Enemy(pygame.sprite.Sprite):
                     break
 
     def update(self, screen, scroll, tiles):
-        self.check_horizontal_collisions(tiles)
+        if not self.idling:
+            # random idle
+            if randint(1, 200) == 1:
+                self.idling = True
+                self.idling_counter = randint(30, 70)
+            # update x position
+            self.rect.x += self.speed
+            # check collisions in x
+            self.check_horizontal_collisions(tiles)
+        else:
+            self.idling_counter -= 1
+            # afet idle - 
+            if self.idling_counter <= 0:
+                self.idling = False
+                self.speed *= choice((-1, 1))
+        
+        # draw enemy on the screen
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 

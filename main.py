@@ -2,11 +2,11 @@
 from sys import exit
 
 import pygame
-from pygame.locals import (K_DOWN, K_ESCAPE, K_LEFT, K_RIGHT, K_SPACE, K_UP,
-                           KEYDOWN, KEYUP, QUIT, K_z)
+from pygame.locals import (K_DOWN, K_ESCAPE, K_F11, K_F12, K_LEFT, K_RIGHT,
+                           K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_z)
 
 from data.modules.classes import Level, Menu
-from data.modules.constants import BLACK, FPS, SCREEN_SIZE
+from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
 
 # Init ---------------------------------------------------------------------- #
 pygame.init()
@@ -16,10 +16,14 @@ pygame.display.set_caption("The Mine")
 
 clock = pygame.time.Clock()
 
+fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
 
 # Game loop ----------------------------------------------------------------- #
 def game_loop():
     level = Level(screen)
+
+    fps = FPS
+    toggle_fps = False
 
     while True:
         # clear screen
@@ -59,6 +63,15 @@ def game_loop():
                 if event.key == K_DOWN:
                     level.key_down = True
                     level.player.down = True
+                # show/hide fps
+                if event.key == K_F12:
+                    toggle_fps = not toggle_fps
+                # lock/unlock max fps
+                if event.key == K_F11:
+                    if fps == FPS:
+                        fps = 10000
+                    else:
+                        fps = FPS
 
             if event.type == KEYUP:
                 # stop moving player left
@@ -79,8 +92,13 @@ def game_loop():
                     level.key_down = False
                     level.player.down = False
 
+        if toggle_fps:
+            screen.blit(
+                fps_font.render(str(int(clock.get_fps())), False, RED),
+                (8, 8)
+            )
         pygame.display.update()
-        clock.tick(FPS)
+        clock.tick(fps)
 
 
 # Main menu loop ------------------------------------------------------------ #

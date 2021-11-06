@@ -112,7 +112,7 @@ class Player(pygame.sprite.Sprite):
             self.on_ground = False
 
     def check_platform_collisions(self, platforms):
-        collision_rect = pygame.Rect(self.rect.x, self.rect.y + TILE_SIZE - 1, TILE_SIZE, 1)
+        collision_rect = pygame.Rect(self.rect.x, self.rect.y + TILE_SIZE - 1, self.rect.width, 1)
         # check 'feet' (collision_rect) colliding with platform
         for platform in platforms:
             if platform.rect.colliderect(collision_rect):
@@ -161,6 +161,10 @@ class Player(pygame.sprite.Sprite):
             self.on_ground = False
             self.climbing = False
 
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vector.y > 18:
+            self.vector.y = 18
+
         if not self.invincible:
             self.check_enemy_collisions(enemies)
 
@@ -183,7 +187,6 @@ class Player(pygame.sprite.Sprite):
 
         # draw player
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, position):
@@ -351,7 +354,7 @@ class Level:
         # images 
         stone_img = pygame.transform.scale2x(pygame.transform.scale2x(pygame.image.load("data/img/stone.png").convert()))
         ladder_img = pygame.image.load("data/img/ladder.png").convert_alpha()
-        torch_imgs = load_images("data/img/torch", "torch")
+        torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         platform_img = pygame.Surface((TILE_SIZE, int(TILE_SIZE * 1/8)))
         platform_img.fill(BROWN)
 

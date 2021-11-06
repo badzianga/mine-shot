@@ -140,7 +140,6 @@ def main_menu():
 
         # update menu (change highlight)
         menu.update()
-
         pygame.display.update()
         clock.tick(FPS)
 

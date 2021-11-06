@@ -3,7 +3,7 @@ from random import choice, randint
 
 import pygame
 
-from .constants import (BLUE, BROWN, GRAVITY, LIGHT_PURPLE, MAP, SCREEN_SIZE,
+from .constants import (BLUE, BROWN, GRAVITY, LIGHT_PURPLE, MAP, ORANGE, SCREEN_SIZE,
                         TILE_SIZE, WHITE, RED)
 from .functions import load_images
 
@@ -38,8 +38,8 @@ class Player(pygame.sprite.Sprite):
         self.right = False
         self.jump = False
 
-    def get_damage(self, damage_range):
-        self.health -= randint(damage_range[0], damage_range[1])
+    def get_damage(self, damage):
+        self.health -= damage
         self.invincible = True
 
     def check_ladder_collisions(self, ladders):
@@ -133,10 +133,23 @@ class Player(pygame.sprite.Sprite):
     def check_enemy_collisions(self, enemies):
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
-                self.get_damage(enemy.damage)
+                self.get_damage(randint(enemy.damage[0], enemy.damage[1]))
                 break
 
-    def update(self, screen, scroll, tiles, platforms, ladders, enemies):
+    def check_lava_collisions(self, lava_tiles):
+        for lava_tile in lava_tiles:
+            if self.rect.colliderect(lava_tile.rect):
+                self.speed = 2
+                self.jump_speed = -9
+                self.vector.y *= 0.3
+                self.on_ground = True
+                if not self.invincible:
+                    self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]))
+                return
+        self.speed = 8
+        self.jump_speed = -18
+
+    def update(self, screen, scroll, tiles, platforms, ladders, enemies, lava):
         # apply gravity
         self.vector.y += GRAVITY
 
@@ -144,6 +157,7 @@ class Player(pygame.sprite.Sprite):
         self.check_tile_collisions(tiles)
         self.check_ladder_collisions(ladders)
         self.check_platform_collisions(platforms)
+        self.check_lava_collisions(lava)
 
         # move left
         if self.left and not self.climbing:
@@ -249,6 +263,21 @@ class Tile(pygame.sprite.Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
+class Lava(pygame.sprite.Sprite):
+    def __init__(self, position):
+        super().__init__()
+
+        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE - 8))
+        self.image.fill(ORANGE)
+
+        self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
+
+        self.damage = (3, 4)
+
+    def update(self, screen, scroll):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+
 class Torch(pygame.sprite.Sprite):
     def __init__(self, position, images):
         super().__init__()
@@ -329,6 +358,7 @@ class Level:
 
         # groups and single objects
         self.tiles = pygame.sprite.Group()
+        self.lava = pygame.sprite.Group()
         self.platforms = pygame.sprite.Group()
         self.ladders = pygame.sprite.Group()
         self.torches = pygame.sprite.Group()
@@ -379,6 +409,8 @@ class Level:
                     self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
                 elif cell == "_":
                     self.platforms.add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
+                elif cell == "~":
+                    self.lava.add(Lava((x * TILE_SIZE, y * TILE_SIZE)))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -412,7 +444,12 @@ class Level:
         self.enemies.update(self.screen, self.scroll, self.tiles)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, self.tiles, self.platforms, self.ladders, self.enemies)
+        self.player.update(self.screen, self.scroll,
+                           self.tiles, self.platforms, self.ladders,
+                           self.enemies, self.lava)
+
+        # update and draw lava
+        self.lava.update(self.screen, self.scroll)
 
         # update and draw torch particles
         for particle in self.torch_particles.copy():

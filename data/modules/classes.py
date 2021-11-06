@@ -30,6 +30,7 @@ class Player(pygame.sprite.Sprite):
         self.health = 20
         self.invincible = False
         self.invincibility_duration = 90  # frames
+        self.debuffs = {"burning": 0}  # debuff name: amount of get_damage to get
 
         # pressed keys
         self.up = False
@@ -139,13 +140,20 @@ class Player(pygame.sprite.Sprite):
     def check_lava_collisions(self, lava_tiles):
         for lava_tile in lava_tiles:
             if self.rect.colliderect(lava_tile.rect):
+                # slow player while in lava, allow to "swim" (jmup)
                 self.speed = 2
                 self.jump_speed = -9
                 self.vector.y *= 0.3
                 self.on_ground = True
+
                 if not self.invincible:
+                    # recieve damage from lava
                     self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]))
+                    # apply debuff
+                    self.debuffs["burning"] = 3
+
                 return
+
         self.speed = 8
         self.jump_speed = -18
 
@@ -181,6 +189,10 @@ class Player(pygame.sprite.Sprite):
 
         if not self.invincible:
             self.check_enemy_collisions(enemies)
+            # get damage from debuffs
+            if self.debuffs["burning"] > 0:
+                self.get_damage(2)
+                self.debuffs["burning"] -= 1
 
         # update invincivbility
         if self.invincible:
@@ -272,7 +284,7 @@ class Lava(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
 
-        self.damage = (3, 4)
+        self.damage = (2, 3)
 
     def update(self, screen, scroll):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))

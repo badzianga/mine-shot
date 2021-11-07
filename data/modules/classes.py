@@ -275,20 +275,36 @@ class Tile(pygame.sprite.Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
-class Lava(pygame.sprite.Sprite):
-    def __init__(self, position):
+class AnimatedTile(pygame.sprite.Sprite):
+    def __init__(self, position, images):
         super().__init__()
 
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE - 8))
-        self.image.fill(ORANGE)
+        self.animation = images
+        self.ANIMATION_LENGTH = len(self.animation)
+        self.frame_index = 0
+        self.COOLDOWN = 0.1
+        self.image = self.animation[self.frame_index]
 
-        self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
-
-        self.damage = (2, 3)
+        self.rect = self.image.get_rect(topleft=position)
 
     def update(self, screen, scroll):
+        # update animation frame
+        self.frame_index += self.COOLDOWN
+        if self.frame_index >= self.ANIMATION_LENGTH:
+            self.frame_index = 0
+
+        # set new frame to the image
+        self.image = self.animation[int(self.frame_index)]
+
+        # draw tile
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
+
+class Lava(AnimatedTile):
+    def __init__(self, position, images):
+        super().__init__(position, images)
+
+        self.damage = (2, 3)
 
 class Torch(pygame.sprite.Sprite):
     def __init__(self, position, images):
@@ -300,7 +316,7 @@ class Torch(pygame.sprite.Sprite):
         self.COOLDOWN = 0.25
         self.image = self.animation[self.frame_index]
 
-        self.rect = self.animation[0].get_rect(topleft=position)
+        self.rect = self.image.get_rect(topleft=position)
 
     def update(self, screen, scroll, particles_group):
         # update animation frame
@@ -376,6 +392,7 @@ class Level:
         self.torches = pygame.sprite.Group()
         self.torch_particles = set()
         self.enemies = pygame.sprite.Group()
+        self.animated_tiles = pygame.sprite.Group()
         self.player = None
 
         # scrolling
@@ -399,6 +416,8 @@ class Level:
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         platform_img = pygame.Surface((TILE_SIZE, int(TILE_SIZE * 1/8)))
         platform_img.fill(BROWN)
+        spider_imgs = load_images("data/img/spider", "Spider_", 1, 1)
+        lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
 
         # temporary, loads level data from tuple
         for y, row in enumerate(MAP):
@@ -422,7 +441,9 @@ class Level:
                 elif cell == "_":
                     self.platforms.add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
                 elif cell == "~":
-                    self.lava.add(Lava((x * TILE_SIZE, y * TILE_SIZE)))
+                    self.lava.add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
+                elif cell == "S":
+                    self.animated_tiles.add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -448,6 +469,9 @@ class Level:
 
         # update and draw platforms
         self.platforms.update(self.screen, self.scroll)
+
+        # update and draw animated tiles
+        self.animated_tiles.update(self.screen, self.scroll)
 
         # update and draw torches, create particles
         self.torches.update(self.screen, self.scroll, self.torch_particles)

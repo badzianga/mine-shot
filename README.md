@@ -4,5 +4,5 @@ Fonts:
  - Pixellari - Zacchary Dempsey-Plante
 
 Images:
- - torch and ladder - Piotr Szybiak
+ - torch, ladder, lava and spider - Piotr Szybiak
  - health bar - Adwit Rahman

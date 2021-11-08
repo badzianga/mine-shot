@@ -6,6 +6,7 @@ import pygame
 from .constants import (BLUE, BROWN, GRAVITY, LIGHT_PURPLE, MAP, ORANGE, SCREEN_SIZE,
                         TILE_SIZE, WHITE, RED)
 from .functions import load_images
+from .tiles import Tile, AnimatedTile, Lava, Torch
 
 
 class Player(pygame.sprite.Sprite):
@@ -214,6 +215,7 @@ class Player(pygame.sprite.Sprite):
         # draw player
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, position):
         super().__init__()
@@ -261,106 +263,6 @@ class Enemy(pygame.sprite.Sprite):
         
         # draw enemy on the screen
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, position, image):
-        super().__init__()
-
-        self.image = image
-        self.rect = self.image.get_rect(topleft=position)
-
-    def update(self, screen, scroll):
-        # draw rect
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-
-class AnimatedTile(pygame.sprite.Sprite):
-    def __init__(self, position, images):
-        super().__init__()
-
-        self.animation = images
-        self.ANIMATION_LENGTH = len(self.animation)
-        self.frame_index = 0
-        self.COOLDOWN = 0.1
-        self.image = self.animation[self.frame_index]
-
-        self.rect = self.image.get_rect(topleft=position)
-
-    def update(self, screen, scroll):
-        # update animation frame
-        self.frame_index += self.COOLDOWN
-        if self.frame_index >= self.ANIMATION_LENGTH:
-            self.frame_index = 0
-
-        # set new frame to the image
-        self.image = self.animation[int(self.frame_index)]
-
-        # draw tile
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-
-class Lava(AnimatedTile):
-    def __init__(self, position, images):
-        super().__init__(position, images)
-
-        self.damage = (2, 3)
-
-class Torch(pygame.sprite.Sprite):
-    def __init__(self, position, images):
-        super().__init__()
-
-        self.animation = images
-        self.ANIMATION_LENGTH = len(self.animation)
-        self.frame_index = randint(0, self.ANIMATION_LENGTH - 1)
-        self.COOLDOWN = 0.25
-        self.image = self.animation[self.frame_index]
-
-        self.rect = self.image.get_rect(topleft=position)
-
-    def update(self, screen, scroll, particles_group):
-        # update animation frame
-        self.frame_index += self.COOLDOWN
-        if self.frame_index >= self.ANIMATION_LENGTH:
-            self.frame_index = 0
-
-        # set new frame to the image
-        self.image = self.animation[int(self.frame_index)]
-
-        # draw torch
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-        # randomly generate particle
-        if randint(1, 25) == 1:
-            particles_group.add(
-                TorchParticle([self.rect.centerx, self.rect.y + 32])
-            )
-
-
-class TorchParticle:
-    def __init__(self, position):
-        self.position = position
-
-        self.velocity = [randint(0, 10) / 10 - 0.5, -3]
-        self.timer = 4.5
-        self.radius = int(self.timer * 2)
-
-        self.COLOR = choice(((235, 83, 28), (240, 240, 31), (247, 215, 36)))
-
-    def update(self, screen, scroll: list):
-        # draw particle
-        pygame.draw.circle(
-            screen, self.COLOR,
-            (int(self.position[0] - scroll[0]), int(self.position[1] - scroll[1])),
-            int(self.timer)
-        )
-
-        # change size and position of the particle
-        self.position[0] += self.velocity[0]
-        self.position[1] += self.velocity[1]
-        self.timer -= 0.04
-        self.velocity[1] += 0.1
-        self.radius = int(self.timer * 2)
 
 
 class HealthBar:
@@ -443,7 +345,7 @@ class Level:
                 elif cell == "~":
                     self.lava.add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
                 elif cell == "S":
-                    self.animated_tiles.add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs))
+                    self.animated_tiles.add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs, 0.1))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)

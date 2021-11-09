@@ -36,7 +36,7 @@ class Level:
         self.torch_particles = set()
         self.enemies = pygame.sprite.Group()
         self.animated_tiles = pygame.sprite.Group()
-        self.bullet_group = pygame.sprite.Group()
+        self.bullets = pygame.sprite.Group()
         self.player = None
 
         # scrolling
@@ -121,7 +121,7 @@ class Level:
         self.torches.update(self.screen, self.scroll, self.torch_particles)
 
         # update bullets
-        self.bullet_group.update(self.screen, self.scroll, self.tiles, self.enemies)
+        self.bullets.update(self.screen, self.scroll, self.tiles, self.enemies)
 
         # update and draw enemies
         self.enemies.update(self.screen, self.scroll, self.tiles)
@@ -129,7 +129,7 @@ class Level:
         # update and draw player
         self.player.update(self.screen, self.scroll,
                            self.tiles, self.platforms, self.ladders,
-                           self.enemies, self.lava, self.bullet_group)
+                           self.enemies, self.lava, self.bullets)
 
         # update and draw lava
         self.lava.update(self.screen, self.scroll)

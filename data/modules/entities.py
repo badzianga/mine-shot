@@ -1,13 +1,13 @@
-from random import randint, choice
 from math import sin
+from random import choice, randint
 
-from pygame.sprite import Group, Sprite
-from pygame.surface import Surface
 from pygame.math import Vector2
 from pygame.rect import Rect
+from pygame.sprite import Group, Sprite, spritecollideany
+from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import TILE_SIZE, BLUE, RED, GRAVITY
+from .constants import BLUE, BROWN, GRAVITY, RED, TILE_SIZE
 
 
 class Player(Sprite):
@@ -17,6 +17,7 @@ class Player(Sprite):
         # image - temporarily just a single-color surface
         self.image = Surface((TILE_SIZE // 2, TILE_SIZE - 8))
         self.image.fill(BLUE)
+        self.flip = False
 
         # collision rect
         self.rect = self.image.get_rect(topleft=position)
@@ -28,11 +29,16 @@ class Player(Sprite):
         self.on_ground = False
         self.climbing = False
 
+        # health stuff
         self.max_health = 20
         self.health = 20
         self.invincible = False
         self.invincibility_duration = 90  # frames
         self.debuffs = {"burning": 0}  # debuff name: amount of get_damage to get
+
+        # shooting
+        self.shoot_cooldown = 0
+        self.damage = (3, 5)
 
         # pressed keys
         self.up = False
@@ -40,6 +46,11 @@ class Player(Sprite):
         self.left = False
         self.right = False
         self.jump = False
+
+    def shoot(self, bullet_group: Group):
+        if self.shoot_cooldown <= 0:
+            self.shoot_cooldown = 45
+            bullet_group.add(Bullet((self.rect.right, self.rect.centery), self.flip, self.damage))       
 
     def get_damage(self, damage: int):
         self.health -= damage
@@ -159,9 +170,12 @@ class Player(Sprite):
         self.speed = 8
         self.jump_speed = -18
 
-    def update(self, screen: Surface, scroll: list, tiles: Group, platforms: Group, ladders: Group, enemies: Group, lava: Group):
+    def update(self, screen: Surface, scroll: list, tiles: Group, platforms: Group, ladders: Group, enemies: Group, lava: Group, bullets: Group):
         # apply gravity
         self.vector.y += GRAVITY
+
+        if self.shoot_cooldown > 0:
+            self.shoot_cooldown -= 1
 
         # check collisions and fix position
         self.check_tile_collisions(tiles)
@@ -172,9 +186,11 @@ class Player(Sprite):
         # move left
         if self.left and not self.climbing:
             self.vector.x = -self.speed
+            self.flip = True
         # or move right
         elif self.right and not self.climbing:
             self.vector.x = self.speed
+            self.flip = False
         # or stop moving
         else:
             self.vector.x = 0
@@ -225,6 +241,8 @@ class Enemy(Sprite):
 
         self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
 
+        self.health = 10
+
         self.speed = randint(3, 5)
         self.damage = (1, 3)
         self.idling = False
@@ -261,6 +279,46 @@ class Enemy(Sprite):
             if self.idling_counter <= 0:
                 self.idling = False
                 self.speed *= choice((-1, 1))
-        
+
+        # kill enemy is health below or equals 0
+        if self.health <= 0:
+            self.kill()
+
         # draw enemy on the screen
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+
+class Bullet(Sprite):
+    def __init__(self, position: tuple, moving_right: bool, damage: tuple):
+        super().__init__()
+
+        self.image = Surface((8, 8))
+        self.image.fill(BROWN)
+        self.rect = self.image.get_rect(center=position)
+
+        if moving_right:
+            self.speed = -16
+        else:
+            self.speed = 16
+
+        self.damage = randint(damage[0], damage[1])
+
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+    def update(self, screen: Surface, scroll: list,  tiles: Group, enemies: Group):
+        # update bullet position
+        self.rect.x += self.speed
+
+        # draw bullet
+        self.draw(screen, scroll)
+
+        # check for collisions with level
+        if spritecollideany(self, tiles):
+            self.kill()
+
+        # check for collisions with enemies
+        for enemy in enemies:
+            if self.rect.colliderect(enemy.rect):
+                enemy.health -= self.damage
+                self.kill()

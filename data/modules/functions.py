@@ -10,4 +10,4 @@ def load_images(path, filename, scale=1, start_counter=0):
         if scale == 2:
             frame = pygame.transform.scale2x(frame)
         frames.append(frame)
-    return frames
+    return tuple(frames)

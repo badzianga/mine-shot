@@ -3,7 +3,7 @@ from sys import exit
 
 import pygame
 from pygame.locals import (K_DOWN, K_ESCAPE, K_F11, K_F12, K_LEFT, K_RIGHT,
-                           K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_z)
+                           K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_x, K_z)
 
 from data.modules.classes import Level, Menu
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
@@ -63,6 +63,8 @@ def game_loop():
                 if event.key == K_DOWN:
                     level.key_down = True
                     level.player.down = True
+                if event.key == K_x:
+                    level.player.shoot(level.bullet_group)
                 # show/hide fps
                 if event.key == K_F12:
                     toggle_fps = not toggle_fps

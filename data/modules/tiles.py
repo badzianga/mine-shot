@@ -5,6 +5,7 @@ from pygame.surface import Surface
 
 from .particles import TorchParticle
 
+
 class Tile(Sprite):
     def __init__(self, position: tuple, image: Surface):
         super().__init__()

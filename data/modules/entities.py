@@ -244,12 +244,16 @@ class Enemy(Sprite):
         self.health = 10
 
         self.speed = randint(3, 5)
+        self.vel_y = 0
         self.damage = (1, 3)
         self.idling = False
         self.idling_counter = 0
 
-    def check_horizontal_collisions(self, tiles: Group):
-        # check collisions
+    def check_tile_collisions(self, tiles: Group):
+        # update x position
+        self.rect.x += self.speed
+
+        # check horizontal collisions (x)
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
                 # touching right wall
@@ -263,16 +267,29 @@ class Enemy(Sprite):
                     self.speed *= -1
                     break
 
+        self.rect.y += self.vel_y
+
+        # chech vertical collisions (y)
+        for tile in tiles:
+            if tile.rect.colliderect(self.rect):
+                # touching floor - stop falling
+                self.rect.bottom = tile.rect.top
+                self.vel_y = 0
+                break
+
     def update(self, screen: Surface, scroll: list, tiles: Group):
+        # apply gravity
+        self.vel_y += GRAVITY
+
+        # update position and check collisions with tiles
+        self.check_tile_collisions(tiles)
+
         if not self.idling:
             # random idle
             if randint(1, 200) == 1:
                 self.idling = True
                 self.idling_counter = randint(30, 70)
-            # update x position
-            self.rect.x += self.speed
-            # check collisions in x
-            self.check_horizontal_collisions(tiles)
+
         else:
             self.idling_counter -= 1
             # after idle - stop idling, randomly select direction of moving

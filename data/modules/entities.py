@@ -7,7 +7,7 @@ from pygame.sprite import Group, Sprite, spritecollideany
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import BLUE, BROWN, GRAVITY, RED, TILE_SIZE
+from .constants import BLUE, BROWN, GRAVITY, RED, TILE_SIZE, CHUNK_SIZE
 
 
 class Player(Sprite):
@@ -84,40 +84,54 @@ class Player(Sprite):
         if not ladder_collision:
             self.climbing = False
 
-    def check_tile_collisions(self, tiles: Group):
+    def check_tile_collisions(self, scroll: list, game_map: dict):
         # update x position
         self.rect.x += self.vector.x
 
         # check horizontal collisions (x)
-        for tile in tiles:
-            if tile.rect.colliderect(self.rect):
-                # touching right wall
-                if self.vector.x < 0:
-                    self.rect.left = tile.rect.right
-                    break
-                # touching left wall
-                elif self.vector.x > 0:
-                    self.rect.right = tile.rect.left
-                    break
+        for y in range(3):
+            for x in range(4):
+                target_x = x - 1 + round(scroll[0] / (CHUNK_SIZE * TILE_SIZE))
+                target_y = y - 1 + round(scroll[1] / (CHUNK_SIZE * TILE_SIZE))
+                target_chunk = f"{target_x};{target_y}"
+                if target_chunk not in game_map.keys():
+                    continue
+                for tile in game_map[target_chunk]:
+                    if tile.rect.colliderect(self.rect):
+                        # touching right wall
+                        if self.vector.x < 0:
+                            self.rect.left = tile.rect.right
+                            break
+                        # touching left wall
+                        elif self.vector.x > 0:
+                            self.rect.right = tile.rect.left
+                            break
 
         # update y position
         self.rect.y += self.vector.y
 
         # check vertical collisions (y)
-        for tile in tiles:
-            if tile.rect.colliderect(self.rect):
-                # touching floor - stop falling, allow jump, stop climbing
-                if self.vector.y > 0:
-                    self.vector.y = 0
-                    self.rect.bottom = tile.rect.top
-                    self.on_ground = True
-                    self.climbing = False
-                    break
-                # touching ceiling - start falling
-                elif self.vector.y < 0:
-                    self.vector.y = 0
-                    self.rect.top = tile.rect.bottom
-                    break
+        for y in range(3):
+            for x in range(4):
+                target_x = x - 1 + round(scroll[0] / (CHUNK_SIZE * TILE_SIZE))
+                target_y = y - 1 + round(scroll[1] / (CHUNK_SIZE * TILE_SIZE))
+                target_chunk = f"{target_x};{target_y}"
+                if target_chunk not in game_map.keys():
+                    continue
+                for tile in game_map[target_chunk]:
+                    if tile.rect.colliderect(self.rect):
+                        # touching floor - stop falling, allow jump, stop climbing
+                        if self.vector.y > 0:
+                            self.vector.y = 0
+                            self.rect.bottom = tile.rect.top
+                            self.on_ground = True
+                            self.climbing = False
+                            break
+                        # touching ceiling - start falling
+                        elif self.vector.y < 0:
+                            self.vector.y = 0
+                            self.rect.top = tile.rect.bottom
+                            break
 
         # if player is in air and collision didn't happen, disable jump
         # without it, when falling from a block, you can jump in air
@@ -170,7 +184,7 @@ class Player(Sprite):
         self.speed = 8
         self.jump_speed = -18
 
-    def update(self, screen: Surface, scroll: list, tiles: Group, platforms: Group, ladders: Group, enemies: Group, lava: Group, bullets: Group):
+    def update(self, screen: Surface, scroll: list, game_map: dict):
         # apply gravity
         self.vector.y += GRAVITY
 
@@ -178,10 +192,7 @@ class Player(Sprite):
             self.shoot_cooldown -= 1
 
         # check collisions and fix position
-        self.check_tile_collisions(tiles)
-        self.check_ladder_collisions(ladders)
-        self.check_platform_collisions(platforms)
-        self.check_lava_collisions(lava)
+        self.check_tile_collisions(scroll, game_map)
 
         # move left
         if self.left and not self.climbing:
@@ -204,13 +215,6 @@ class Player(Sprite):
         # set max falling spedd - temp fix for bug with platform collision
         if self.vector.y > 18:
             self.vector.y = 18
-
-        if not self.invincible:
-            self.check_enemy_collisions(enemies)
-            # get damage from debuffs
-            if self.debuffs["burning"] > 0:
-                self.get_damage(2)
-                self.debuffs["burning"] -= 1
 
         # update invincivbility
         if self.invincible:

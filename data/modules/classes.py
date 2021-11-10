@@ -1,6 +1,6 @@
 import pygame
 
-from .constants import BROWN, LIGHT_PURPLE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import BROWN, CHUNK_SIZE, LIGHT_PURPLE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Enemy, Player
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
@@ -39,6 +39,8 @@ class Level:
         self.bullets = pygame.sprite.Group()
         self.player = None
 
+        self.game_map ={}
+
         # scrolling
         self.true_scroll = [0, 0]
         self.scroll = [0, 0]
@@ -56,38 +58,23 @@ class Level:
     def load_level(self):
         # images 
         stone_img = pygame.transform.scale2x(pygame.transform.scale2x(pygame.image.load("data/img/stone.png").convert()))
-        ladder_img = pygame.image.load("data/img/ladder.png").convert_alpha()
-        torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
-        platform_img = pygame.Surface((TILE_SIZE, int(TILE_SIZE * 1/8)))
-        platform_img.fill(BROWN)
-        spider_imgs = load_images("data/img/spider", "Spider_", 1, 1)
-        lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
 
         # temporary, loads level data from tuple
         for y, row in enumerate(MAP):
             for x, cell in enumerate(row):
+                current_chunk_x = x // CHUNK_SIZE
+                current_chunk_y = y // CHUNK_SIZE
+                current_chunk = f"{current_chunk_x};{current_chunk_y}"
+
+                if current_chunk not in self.game_map.keys():
+                    self.game_map[current_chunk] = pygame.sprite.Group()
+
                 # create stone tiles
                 if cell == "X":
-                    self.tiles.add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
+                    self.game_map[current_chunk].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
-                # create ladders
-                elif cell == "L":
-                    self.ladders.add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
-                # create torches
-                elif cell == "T":
-                    self.torches.add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
-                    # I wanted torches between two tiles, that's why -32
-                # create enemies
-                elif cell == "E":
-                    self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
-                elif cell == "_":
-                    self.platforms.add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
-                elif cell == "~":
-                    self.lava.add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
-                elif cell == "S":
-                    self.animated_tiles.add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs, 0.1))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -108,37 +95,18 @@ class Level:
             self.true_scroll[1] += 6.5
 
         # update and draw tiles
-        self.tiles.update(self.screen, self.scroll)
-        self.ladders.update(self.screen, self.scroll)
+        for y in range(3):
+            for x in range(4):
+                target_x = x - 1 + round(self.scroll[0] / (CHUNK_SIZE * TILE_SIZE))
+                target_y = y - 1 + round(self.scroll[1] / (CHUNK_SIZE * TILE_SIZE))
 
-        # update and draw platforms
-        self.platforms.update(self.screen, self.scroll)
-
-        # update and draw animated tiles
-        self.animated_tiles.update(self.screen, self.scroll)
-
-        # update and draw torches, create particles
-        self.torches.update(self.screen, self.scroll, self.torch_particles)
-
-        # update bullets
-        self.bullets.update(self.screen, self.scroll, self.tiles, self.enemies)
-
-        # update and draw enemies
-        self.enemies.update(self.screen, self.scroll, self.tiles)
+                target_chunk = f"{target_x};{target_y}"
+                if target_chunk in self.game_map.keys():
+                    self.game_map[target_chunk].update(self.screen, self.scroll)
 
         # update and draw player
         self.player.update(self.screen, self.scroll,
-                           self.tiles, self.platforms, self.ladders,
-                           self.enemies, self.lava, self.bullets)
-
-        # update and draw lava
-        self.lava.update(self.screen, self.scroll)
-
-        # update and draw torch particles
-        for particle in self.torch_particles.copy():
-            particle.update(self.screen, self.scroll)
-            if particle.timer <= 0:
-                self.torch_particles.remove(particle)
+                           self.game_map)
 
         # draw UI
         self.health_bar.update(self.screen, self.player.health, self.player.max_health)

@@ -16,9 +16,6 @@ class Tile(Sprite):
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list):
-        self.draw(screen, scroll)
-        
 
 class AnimatedTile(Tile):
     def __init__(self, position: tuple, images: tuple, cooldown: float):

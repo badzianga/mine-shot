@@ -5,8 +5,9 @@ import pygame
 from pygame.locals import (K_DOWN, K_ESCAPE, K_F11, K_F12, K_LEFT, K_RIGHT,
                            K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_x, K_z)
 
-from data.modules.classes import Level, Menu
+from data.modules.classes import Menu
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
+from data.modules.level import Level
 
 # Init ---------------------------------------------------------------------- #
 pygame.init()

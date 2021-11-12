@@ -252,11 +252,7 @@ class Enemy(Sprite):
         self.idling = False
         self.idling_counter = 0
 
-    def check_tile_collisions(self, tiles: set):
-        # update x position
-        self.rect.x += self.speed
-
-        # check horizontal collisions (x)
+    def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
                 # touching right wall
@@ -270,9 +266,7 @@ class Enemy(Sprite):
                     self.speed *= -1
                     break
 
-        self.rect.y += self.vel_y
-
-        # chech vertical collisions (y)
+    def check_vertical_collisions(self, tiles):
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
                 # touching floor - stop falling
@@ -280,12 +274,19 @@ class Enemy(Sprite):
                 self.vel_y = 0
                 break
 
-    def update(self, screen: Surface, scroll: list, tiles: set):
-        # apply gravity
-        self.vel_y += GRAVITY
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set):
+        # update x position and check for horizontal collisions
+        self.rect.x += self.speed
+        self.check_horizontal_collisions(tiles)
 
         # update position and check collisions with tiles
-        self.check_tile_collisions(tiles)
+        self.vel_y += GRAVITY
+        self.rect.y += self.vel_y
+        self.check_vertical_collisions(set.union(tiles, platforms))
+
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vel_y > 18:
+            self.vel_y = 18
 
         if not self.idling:
             # random idle

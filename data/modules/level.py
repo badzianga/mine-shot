@@ -152,7 +152,7 @@ class Level:
         # update and draw enemies
         for enemy in self.enemies:
             if active_rect.colliderect(enemy.rect):
-                enemy.update(self.screen, self.scroll, objects["tiles"])
+                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"])
 
         # update and draw player
         self.player.update(self.screen, self.scroll, objects, self.enemies)

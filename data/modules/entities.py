@@ -51,6 +51,11 @@ class Player(Sprite):
         self.health -= damage
         self.invincible = True
 
+    def shoot(self, bullet_group: Group):
+        if self.shoot_cooldown <= 0:
+            self.shoot_cooldown = 45
+            bullet_group.add(Bullet((self.rect.right, self.rect.centery), self.flip, self.damage))       
+
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
@@ -152,7 +157,7 @@ class Player(Sprite):
         self.speed = 8
         self.jump_speed = -18
 
-    def check_enemy_collisions(self, enemies: set):
+    def check_enemy_collisions(self, enemies: Group):
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
                 self.get_damage(randint(enemy.damage[0], enemy.damage[1]))
@@ -161,7 +166,7 @@ class Player(Sprite):
     def draw(self, screen: Surface, scroll: set):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list, objects: dict):
+    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group):
         # update x position and check for horizontal collisions
         self.rect.x += self.vector.x
         self.check_horizontal_collisions(objects["tiles"])
@@ -202,14 +207,13 @@ class Player(Sprite):
         if self.vector.y > 18:
             self.vector.y = 18
 
-        # TODO: add collisions with enemies
-        # # check for collisions with enemies
-        # if not self.invincible:
-        #     self.check_enemy_collisions()
-        #     # get damage from debuffs
-        #     if self.debuffs["burning"] > 0:
-        #         self.get_damage(2)
-        #         self.debuffs["burning"] -= 1
+        # check for collisions with enemies
+        if not self.invincible:
+            self.check_enemy_collisions(enemies)
+            # get damage from debuffs
+            if self.debuffs["burning"] > 0:
+                self.get_damage(2)
+                self.debuffs["burning"] -= 1
 
         # update invincivbility
         if self.invincible:
@@ -248,7 +252,7 @@ class Enemy(Sprite):
         self.idling = False
         self.idling_counter = 0
 
-    def check_tile_collisions(self, tiles: Group):
+    def check_tile_collisions(self, tiles: set):
         # update x position
         self.rect.x += self.speed
 
@@ -276,7 +280,7 @@ class Enemy(Sprite):
                 self.vel_y = 0
                 break
 
-    def update(self, screen: Surface, scroll: list, tiles: Group):
+    def update(self, screen: Surface, scroll: list, tiles: set):
         # apply gravity
         self.vel_y += GRAVITY
 
@@ -322,7 +326,7 @@ class Bullet(Sprite):
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list,  tiles: Group, enemies: Group):
+    def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group):
         # update bullet position
         self.rect.x += self.speed
 

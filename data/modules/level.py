@@ -1,12 +1,14 @@
 from pygame.image import load
+from pygame.rect import Rect
+from pygame.sprite import Group
 from pygame.surface import Surface
 from pygame.transform import scale2x
 
 from .classes import HealthBar
-from .constants import BROWN, CHUNK_SIZE, MAP, TILE_SIZE
-from .entities import Player
-from .tiles import AnimatedTile, Lava, Tile, Torch
+from .constants import BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE
+from .entities import Enemy, Player
 from .functions import load_images
+from .tiles import AnimatedTile, Lava, Tile, Torch
 
 
 class Level:
@@ -16,6 +18,8 @@ class Level:
         self.player = None
         self.game_map = {}
         self.torch_particles = set()
+        self.bullet_group = Group()
+        self.enemies = Group()
 
         # scrolling
         self.true_scroll = [0, 0]
@@ -76,7 +80,8 @@ class Level:
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
-                # TODO: load enemies
+                elif cell == "E":
+                    self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
 
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
@@ -135,8 +140,22 @@ class Level:
         for torch in objects["torches"]:
             torch.update(self.screen, self.scroll, self.torch_particles)
 
+        # create rect (slightly larger than screen rect) in which enemies and bullets will be updated
+        active_rect = Rect(self.scroll[0] - 128, self.scroll[1] - 128,
+                           SCREEN_SIZE[0] + 256, SCREEN_SIZE[1] + 256)
+
+        # update and draw bullets
+        for bullet in self.bullet_group:
+            if active_rect.colliderect(bullet.rect):
+                bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies)
+
+        # update and draw enemies
+        for enemy in self.enemies:
+            if active_rect.colliderect(enemy.rect):
+                enemy.update(self.screen, self.scroll, objects["tiles"])
+
         # update and draw player
-        self.player.update(self.screen, self.scroll, objects)
+        self.player.update(self.screen, self.scroll, objects, self.enemies)
 
         # update and draw lava
         for lava in objects["lava"]:

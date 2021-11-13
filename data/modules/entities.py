@@ -7,7 +7,7 @@ from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import BLUE, BROWN, GRAVITY, RED, TILE_SIZE
+from .constants import BLUE, GOLD, GRAVITY, RED, TILE_SIZE
 
 
 class Player(Sprite):
@@ -54,9 +54,18 @@ class Player(Sprite):
     def shoot(self, bullet_group: Group):
         if self.shoot_cooldown <= 0:
             self.shoot_cooldown = 45
-            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(1, 3), self.damage))
-            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 0, self.damage))
-            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(-3, -1), self.damage))
+            if self.up:
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, -15), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, -16), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, -17), self.damage))
+            elif self.down:
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, 15), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, 16), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, 17), self.damage))
+            else:
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, -2), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20,  0), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, 2), self.damage))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -312,19 +321,19 @@ class Enemy(Sprite):
 
 
 class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_left: bool, angle: int, damage: tuple):
+    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple):
         super().__init__()
 
         self.image = Surface((8, 8))
-        self.image.fill(BROWN)
+        self.image.fill(GOLD)
         self.rect = self.image.get_rect(center=position)
         self.bounces = 1
 
         if moving_left:
-            self.vector = Vector2(-20, angle)
+            self.vector = Vector2(-speeds[0], speeds[1])
 
         else:
-            self.vector = Vector2(20, angle)
+            self.vector = Vector2(speeds[0], speeds[1])
 
         self.damage = randint(damage[0], damage[1])
 

@@ -20,6 +20,7 @@ class Level:
         self.torch_particles = set()
         self.bullet_group = Group()
         self.enemies = Group()
+        self.texts = Group()
 
         # scrolling
         self.true_scroll = [0, 0]
@@ -147,7 +148,7 @@ class Level:
         # update and draw bullets
         for bullet in self.bullet_group:
             if active_rect.colliderect(bullet.rect):
-                bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies)
+                bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies, self.texts)
 
         # update and draw enemies
         for enemy in self.enemies:
@@ -155,7 +156,7 @@ class Level:
                 enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"])
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, objects, self.enemies)
+        self.player.update(self.screen, self.scroll, objects, self.enemies, self.texts)
 
         # update and draw lava
         for lava in objects["lava"]:
@@ -166,6 +167,9 @@ class Level:
             particle.update(self.screen, self.scroll)
             if particle.timer <= 0:
                 self.torch_particles.remove(particle)
+
+        # draw texts
+        self.texts.update(self.screen, self.scroll)
 
         # draw UI
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)

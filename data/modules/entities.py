@@ -7,7 +7,8 @@ from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import BLUE, GOLD, GRAVITY, RED, TILE_SIZE
+from .constants import BLUE, GOLD, GRAVITY, RED, TILE_SIZE, WHITE
+from .texts import DamageText
 
 
 class Player(Sprite):
@@ -38,7 +39,7 @@ class Player(Sprite):
 
         # shooting
         self.shoot_cooldown = 0
-        self.damage = (3, 5)
+        self.damage = (1, 5)
 
         # pressed keys
         self.up = False
@@ -47,8 +48,9 @@ class Player(Sprite):
         self.right = False
         self.jump = False
 
-    def get_damage(self, damage: int):
+    def get_damage(self, damage: int, texts: Group):
         self.health -= damage
+        texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), RED))
         self.invincible = True
 
     def shoot(self, bullet_group: Group):
@@ -147,7 +149,7 @@ class Player(Sprite):
 
                     break
 
-    def check_lava_collisions(self, lava_tiles: set):
+    def check_lava_collisions(self, lava_tiles: set, texts: Group):
         for lava_tile in lava_tiles:
             if self.rect.colliderect(lava_tile.rect):
                 # slow player while in lava, allow to "swim" (jmup)
@@ -158,7 +160,7 @@ class Player(Sprite):
 
                 if not self.invincible:
                     # recieve damage from lava
-                    self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]))
+                    self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]), texts)
                     # apply debuff
                     self.debuffs["burning"] = 3
 
@@ -168,16 +170,17 @@ class Player(Sprite):
         self.speed = 8
         self.jump_speed = -18
 
-    def check_enemy_collisions(self, enemies: Group):
+    def check_enemy_collisions(self, enemies: Group, texts: Group):
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
-                self.get_damage(randint(enemy.damage[0], enemy.damage[1]))
+                damage = randint(enemy.damage[0], enemy.damage[1])
+                self.get_damage(damage, texts)
                 break
 
     def draw(self, screen: Surface, scroll: set):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group):
+    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group, texts: Group):
         # update x position and check for horizontal collisions
         self.rect.x += self.vector.x
         self.check_horizontal_collisions(objects["tiles"])
@@ -190,7 +193,7 @@ class Player(Sprite):
         # check for collisions with other objects (except enemies)
         self.check_ladder_collisions(objects["ladders"])
         self.check_platform_collisions(objects["platforms"])
-        self.check_lava_collisions(objects["lava"])
+        self.check_lava_collisions(objects["lava"], texts)
 
         # update shoot cooldown
         if self.shoot_cooldown > 0:
@@ -220,10 +223,10 @@ class Player(Sprite):
 
         # check for collisions with enemies
         if not self.invincible:
-            self.check_enemy_collisions(enemies)
+            self.check_enemy_collisions(enemies, texts)
             # get damage from debuffs
             if self.debuffs["burning"] > 0:
-                self.get_damage(2)
+                self.get_damage(2, texts)
                 self.debuffs["burning"] -= 1
 
         # update invincivbility
@@ -235,11 +238,10 @@ class Player(Sprite):
 
         # blinking if damaged
         if self.invincible:
-            alpha = sin(get_ticks())
-            if alpha >= 0:
+            if sin(get_ticks()) >= 0:
                 self.image.set_alpha(255)
             else:
-                self.image.set_alpha(0)
+                self.image.set_alpha(63)
         else:
             self.image.set_alpha(255)
 
@@ -256,12 +258,17 @@ class Enemy(Sprite):
         self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
 
         self.health = 10
+        self.blinking = 0
 
         self.speed = randint(3, 5)
         self.vel_y = 0
         self.damage = (1, 3)
         self.idling = False
         self.idling_counter = 0
+
+    def get_damage(self, damage: int):
+        self.health -= damage
+        self.blinking = 30
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -312,6 +319,17 @@ class Enemy(Sprite):
                 self.idling = False
                 self.speed *= choice((-1, 1))
 
+        # blinking if damaged
+        if self.blinking:
+            self.blinking -= 1
+            if sin(get_ticks()) >= 0:
+                self.image.set_alpha(255)
+            else:
+                self.image.set_alpha(63)
+        else:
+            self.image.set_alpha(255)
+            
+
         # kill enemy is health below or equals 0
         if self.health <= 0:
             self.kill()
@@ -340,7 +358,7 @@ class Bullet(Sprite):
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group):
+    def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group, texts: Group):
         # update bullet x position
         self.rect.x += self.vector.x
 
@@ -377,7 +395,8 @@ class Bullet(Sprite):
         # check for collisions with enemies
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
-                enemy.health -= self.damage
+                enemy.get_damage(self.damage)
+                texts.add(DamageText((randint(enemy.rect.left, enemy.rect.right), randint(enemy.rect.top - 16, enemy.rect.top + 16)), str(self.damage), WHITE))
                 self.kill()
 
         # draw bullet

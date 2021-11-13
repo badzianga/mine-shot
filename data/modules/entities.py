@@ -3,7 +3,7 @@ from random import choice, randint
 
 from pygame.math import Vector2
 from pygame.rect import Rect
-from pygame.sprite import Group, Sprite, spritecollideany
+from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
@@ -54,7 +54,9 @@ class Player(Sprite):
     def shoot(self, bullet_group: Group):
         if self.shoot_cooldown <= 0:
             self.shoot_cooldown = 45
-            bullet_group.add(Bullet((self.rect.right, self.rect.centery), self.flip, self.damage))       
+            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(1, 3), self.damage))
+            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 0, self.damage))
+            bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(-3, -1), self.damage))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -310,17 +312,19 @@ class Enemy(Sprite):
 
 
 class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_right: bool, damage: tuple):
+    def __init__(self, position: tuple, moving_left: bool, angle: int, damage: tuple):
         super().__init__()
 
         self.image = Surface((8, 8))
         self.image.fill(BROWN)
         self.rect = self.image.get_rect(center=position)
+        self.bounces = 1
 
-        if moving_right:
-            self.speed = -16
+        if moving_left:
+            self.vector = Vector2(-20, angle)
+
         else:
-            self.speed = 16
+            self.vector = Vector2(20, angle)
 
         self.damage = randint(damage[0], damage[1])
 
@@ -328,18 +332,44 @@ class Bullet(Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
     def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group):
-        # update bullet position
-        self.rect.x += self.speed
+        # update bullet x position
+        self.rect.x += self.vector.x
 
-        # draw bullet
-        self.draw(screen, scroll)
+        # check for x collisions with tiles
+        for tile in tiles:
+            if self.rect.colliderect(tile.rect):
+                if self.bounces > 0:
+                    if self.vector.x > 0:
+                        self.rect.right = tile.rect.left
+                    else:
+                        self.rect.left = tile.rect.right
+                    self.vector.x *= -1
+                    self.bounces -= 1
+                    break
+                else:
+                    self.kill()
 
-        # check for collisions with level
-        if spritecollideany(self, tiles):
-            self.kill()
+        # update bullet y position
+        self.rect.y += self.vector.y
+
+        # check for y collisions with tiles
+        for tile in tiles:
+            if self.rect.colliderect(tile.rect):
+                if self.bounces > 0:
+                    if self.vector.y > 0:
+                        self.rect.bottom = tile.rect.top
+                    else:
+                        self.rect.top = tile.rect.bottom
+                    self.vector.y *= -1
+                    self.bounces -= 1
+                else:
+                    self.kill()
 
         # check for collisions with enemies
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
                 enemy.health -= self.damage
                 self.kill()
+
+        # draw bullet
+        self.draw(screen, scroll)

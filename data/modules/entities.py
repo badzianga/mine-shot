@@ -33,6 +33,8 @@ class Player(Sprite):
         # health stuff
         self.max_health = 20
         self.health = 20
+        self.max_mana = 100
+        self.mana = 100
         self.invincible = False
         self.invincibility_duration = 90  # frames
         self.debuffs = {"burning": 0}  # debuff name: amount of get_damage to get
@@ -68,6 +70,20 @@ class Player(Sprite):
                 bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, -2), self.damage))
                 bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20,  0), self.damage))
                 bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, 2), self.damage))
+
+    def burst(self, bullet_group: Group):
+        if self.shoot_cooldown <= 0 and self.mana >= 40:
+            self.mana -= 40
+            self.shoot_cooldown = 60
+            if self.up:
+                for _ in range(8):
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(-20, -16)), self.damage))
+            elif self.down:
+                for _ in range(8):
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(16, 20)), self.damage))
+            else:
+                for _ in range(8):
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(16, 20), randint(-5, 5)), self.damage))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -199,6 +215,10 @@ class Player(Sprite):
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
 
+        # regenerate mana
+        if self.mana < 100:
+            self.mana += 0.1
+
         # move left
         if self.left and not self.climbing:
             self.vector.x = -self.speed
@@ -284,7 +304,7 @@ class Enemy(Sprite):
                     self.speed *= -1
                     break
 
-    def check_vertical_collisions(self, tiles):
+    def check_vertical_collisions(self, tiles: set):
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
                 # touching floor - stop falling

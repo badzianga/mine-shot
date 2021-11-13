@@ -1,22 +1,44 @@
 import pygame
+from pygame.surface import Surface
 
 from .constants import LIGHT_PURPLE, SCREEN_SIZE, WHITE
 
 
 class HealthBar:
     def __init__(self):
-        self.health_border = pygame.transform.scale2x(pygame.image.load("data/img/health_border.png").convert_alpha())
+        self.health_border = pygame.transform.scale2x(pygame.image.load("data/img/bar_border.png").convert_alpha())
+        self.empty_bar = pygame.transform.scale2x(pygame.image.load("data/img/empty_bar.png").convert_alpha())
         self.health_bar = pygame.transform.scale2x(pygame.image.load("data/img/health_bar.png").convert_alpha())
         self.size = self.health_bar.get_size()
 
-    def draw(self, screen, health, max_health):
+    def draw(self, screen: Surface, health: int, max_health: int):
         # draw border
         screen.blit(self.health_border, (SCREEN_SIZE[0] - 185, 18))  # border
+        screen.blit(self.empty_bar, (SCREEN_SIZE[0] - 181, 20))
         # draw current health
         screen.blit(
             self.health_bar,
             (SCREEN_SIZE[0] - 181, 20),
             (0, 0, int(self.size[0] * (health / max_health)), self.size[1])  # width of the bar
+        )
+
+
+class ManaBar:
+    def __init__(self):
+        self.mana_border = pygame.transform.scale2x(pygame.image.load("data/img/bar_border.png").convert_alpha())
+        self.empty_bar = pygame.transform.scale2x(pygame.image.load("data/img/empty_bar.png").convert_alpha())
+        self.mana_bar = pygame.transform.scale2x(pygame.image.load("data/img/mana_bar.png").convert_alpha())
+        self.size = self.mana_bar.get_size()
+
+    def draw(self, screen: Surface, mana: float, max_mana: int):
+        # draw border
+        screen.blit(self.mana_border, (SCREEN_SIZE[0] - 185, 48))  # border
+        screen.blit(self.empty_bar, (SCREEN_SIZE[0] - 181, 50))
+        # draw current mana
+        screen.blit(
+            self.mana_bar,
+            (SCREEN_SIZE[0] - 181, 50),
+            (0, 0, int(self.size[0] * (mana / max_mana)), self.size[1])  # width of the bar
         )
 
 
@@ -39,7 +61,7 @@ class Menu:
         self.key_up = False
         self.key_down = False
 
-    def draw(self, screen):
+    def draw(self, screen: Surface):
         for i, text in enumerate(self.texts):
             if i == self.highlighted:
                 text_surface = self.font.render(text, True, LIGHT_PURPLE)

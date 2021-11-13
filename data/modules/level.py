@@ -1,10 +1,12 @@
+from random import randint
+
 from pygame.image import load
 from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
 from pygame.transform import scale2x
 
-from .classes import HealthBar
+from .classes import HealthBar, ManaBar
 from .constants import BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE
 from .entities import Enemy, Player
 from .functions import load_images
@@ -15,6 +17,7 @@ class Level:
     def __init__(self, screen: Surface):
         self.screen = screen
 
+        # game elements containers - objects/groups/sets
         self.player = None
         self.game_map = {}
         self.torch_particles = set()
@@ -35,6 +38,10 @@ class Level:
 
         # user interface
         self.health_bar = HealthBar()
+        self.mana_bar = ManaBar()
+
+        # earthquake
+        self.screen_shake = 0
 
     def load_level(self):
         # images 
@@ -84,6 +91,11 @@ class Level:
                 elif cell == "E":
                     self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
 
+    def earthquake(self):
+        self.screen_shake -= 1
+        self.true_scroll[0] += randint(0, 10) - 5
+        self.true_scroll[1] += randint(0, 10) - 5
+
     def update_scroll(self):
         # first, calculate true scroll values (floats, center of the player)
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618) / 25
@@ -93,14 +105,20 @@ class Level:
         self.scroll[1] = int(self.true_scroll[1])
 
     def run(self):
-        # update scroll values
-        self.update_scroll()
-
         # look up and down
         if self.key_up:
             self.true_scroll[1] -= 6.5
         if self.key_down:
             self.true_scroll[1] += 6.5
+
+        # earthquake
+        if self.screen_shake > 0:
+            self.earthquake()  # apply earthquake
+        elif randint(1, 1000) == 1:  # 0.1% chance for earthquake
+            self.screen_shake = randint(120, 180)  # 2-3s of earthquake
+
+        # update scroll values
+        self.update_scroll()
 
         # create set with objects from active chunks (all objects except player and enemies!)
         objects = {"tiles": set(), "ladders": set(), "platforms": set(),
@@ -173,3 +191,4 @@ class Level:
 
         # draw UI
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)
+        self.mana_bar.draw(self.screen, self.player.mana, self.player.max_mana)

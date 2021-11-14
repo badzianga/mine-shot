@@ -1,4 +1,5 @@
 from random import randint
+from pygame.font import Font
 
 from pygame.image import load
 from pygame.rect import Rect
@@ -7,7 +8,7 @@ from pygame.surface import Surface
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE
+from .constants import BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Enemy, Player
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
@@ -24,6 +25,7 @@ class Level:
         self.bullet_group = Group()
         self.enemies = Group()
         self.texts = Group()
+        self.gold_group = Group()
 
         # scrolling
         self.true_scroll = [0, 0]
@@ -39,6 +41,9 @@ class Level:
         # user interface
         self.health_bar = HealthBar()
         self.mana_bar = ManaBar()
+
+        # font
+        self.font = Font("data/fonts/Pixellari.ttf", 32)
 
         # earthquake
         self.screen_shake = 0
@@ -168,17 +173,23 @@ class Level:
             if active_rect.colliderect(bullet.rect):
                 bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies, self.texts)
 
+        # draw gold
+        for gold in self.gold_group:
+            if active_rect.colliderect(gold.rect):
+                gold.update(self.screen, self.scroll, objects["tiles"])
+
         # update and draw enemies
         for enemy in self.enemies:
             if active_rect.colliderect(enemy.rect):
-                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"])
+                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"], self.gold_group)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, objects, self.enemies, self.texts)
+        self.player.update(self.screen, self.scroll, objects, self.enemies, self.texts, self.gold_group)
 
         # update and draw lava
         for lava in objects["lava"]:
-            lava.update(self.screen, self.scroll)
+            if active_rect.colliderect(lava.rect):
+                lava.update(self.screen, self.scroll)
 
         # update and draw torch particles
         for particle in self.torch_particles.copy():
@@ -192,3 +203,5 @@ class Level:
         # draw UI
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)
         self.mana_bar.draw(self.screen, self.player.mana, self.player.max_mana)
+        gold_amount = self.font.render(f"GOLD: {self.player.gold}", False, WHITE)
+        self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 181, 78))

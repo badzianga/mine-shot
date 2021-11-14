@@ -1,6 +1,8 @@
 from math import sin
 from random import choice, randint
 
+from pygame.image import load
+from pygame.transform import scale2x
 from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
@@ -49,6 +51,8 @@ class Player(Sprite):
         self.left = False
         self.right = False
         self.jump = False
+
+        self.gold = 0
 
     def get_damage(self, damage: int, texts: Group):
         self.health -= damage
@@ -193,10 +197,17 @@ class Player(Sprite):
                 self.get_damage(damage, texts)
                 break
 
+    def check_coins_collisions(self, gold_group: Group, texts: Group):
+        for gold in gold_group:
+            if self.rect.colliderect(gold.rect):
+                self.gold += gold.amount
+                texts.add(DamageText(self.rect.midtop, str(gold.amount), GOLD))
+                gold.kill()
+
     def draw(self, screen: Surface, scroll: set):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group, texts: Group):
+    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group, texts: Group, gold_group: Group):
         # update x position and check for horizontal collisions
         self.rect.x += self.vector.x
         self.check_horizontal_collisions(objects["tiles"])
@@ -210,6 +221,7 @@ class Player(Sprite):
         self.check_ladder_collisions(objects["ladders"])
         self.check_platform_collisions(objects["platforms"])
         self.check_lava_collisions(objects["lava"], texts)
+        self.check_coins_collisions(gold_group, texts)
 
         # update shoot cooldown
         if self.shoot_cooldown > 0:
@@ -220,12 +232,14 @@ class Player(Sprite):
             self.mana += 0.1
 
         # move left
-        if self.left and not self.climbing:
-            self.vector.x = -self.speed
+        if self.left:
+            if not self.climbing:
+                self.vector.x = -self.speed
             self.flip = True
         # or move right
-        elif self.right and not self.climbing:
-            self.vector.x = self.speed
+        elif self.right:
+            if not self.climbing:
+                self.vector.x = self.speed
             self.flip = False
         # or stop moving
         else:
@@ -286,6 +300,8 @@ class Enemy(Sprite):
         self.idling = False
         self.idling_counter = 0
 
+        self.gold_amount = choice((1, 2, 4, 8, 16, 32))
+
     def get_damage(self, damage: int):
         self.health -= damage
         self.blinking = 30
@@ -312,7 +328,7 @@ class Enemy(Sprite):
                 self.vel_y = 0
                 break
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set):
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, gold_group: Group):
         # update x position and check for horizontal collisions
         self.rect.x += self.speed
         self.check_horizontal_collisions(tiles)
@@ -352,6 +368,7 @@ class Enemy(Sprite):
 
         # kill enemy is health below or equals 0
         if self.health <= 0:
+            gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
             self.kill()
 
         # draw enemy on the screen
@@ -420,4 +437,30 @@ class Bullet(Sprite):
                 self.kill()
 
         # draw bullet
+        self.draw(screen, scroll)
+
+
+class Gold(Sprite):
+    def __init__(self, position: tuple, amount: int):
+        super().__init__()
+        self.amount = amount
+        self.image = scale2x(load(f"data/img/gold/{amount}.png").convert_alpha())
+        self.rect = self.image.get_rect(midbottom=position)
+        self.vel_y = 0
+
+    def check_vertical_collisions(self, tiles: set):
+        for tile in tiles:
+            if tile.rect.colliderect(self.rect): 
+                self.rect.bottom = tile.rect.top
+                self.vel_y = 0
+                break
+
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+    def update(self, screen: Surface, scroll: list, tiles: set):
+        self.vel_y += GRAVITY
+        self.rect.y += self.vel_y
+        self.check_vertical_collisions(tiles)
+
         self.draw(screen, scroll)

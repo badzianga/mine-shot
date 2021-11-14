@@ -1,14 +1,21 @@
-import pygame
-from pygame.surface import Surface
+from random import randint
 
-from .constants import LIGHT_PURPLE, SCREEN_SIZE, WHITE
+from pygame.font import Font
+from pygame.image import load
+from pygame.math import Vector2
+from pygame.sprite import Group, Sprite
+from pygame.surface import Surface
+from pygame.transform import scale2x
+
+from .constants import GOLD, GRAVITY, LIGHT_PURPLE, SCREEN_SIZE, WHITE
+from .texts import DamageText
 
 
 class HealthBar:
     def __init__(self):
-        self.health_border = pygame.transform.scale2x(pygame.image.load("data/img/bar_border.png").convert_alpha())
-        self.empty_bar = pygame.transform.scale2x(pygame.image.load("data/img/empty_bar.png").convert_alpha())
-        self.health_bar = pygame.transform.scale2x(pygame.image.load("data/img/health_bar.png").convert_alpha())
+        self.health_border = scale2x(load("data/img/bar_border.png").convert_alpha())
+        self.empty_bar = scale2x(load("data/img/empty_bar.png").convert_alpha())
+        self.health_bar = scale2x(load("data/img/health_bar.png").convert_alpha())
         self.size = self.health_bar.get_size()
 
     def draw(self, screen: Surface, health: int, max_health: int):
@@ -25,9 +32,9 @@ class HealthBar:
 
 class ManaBar:
     def __init__(self):
-        self.mana_border = pygame.transform.scale2x(pygame.image.load("data/img/bar_border.png").convert_alpha())
-        self.empty_bar = pygame.transform.scale2x(pygame.image.load("data/img/empty_bar.png").convert_alpha())
-        self.mana_bar = pygame.transform.scale2x(pygame.image.load("data/img/mana_bar.png").convert_alpha())
+        self.mana_border = scale2x(load("data/img/bar_border.png").convert_alpha())
+        self.empty_bar = scale2x(load("data/img/empty_bar.png").convert_alpha())
+        self.mana_bar = scale2x(load("data/img/mana_bar.png").convert_alpha())
         self.size = self.mana_bar.get_size()
 
     def draw(self, screen: Surface, mana: float, max_mana: int):
@@ -45,7 +52,7 @@ class ManaBar:
 class Menu:
     def __init__(self):
         # menu font
-        self.font = pygame.font.Font("data/fonts/Pixellari.ttf", 48)
+        self.font = Font("data/fonts/Pixellari.ttf", 48)
 
         # texts and positions
         self.texts = ("New Game", "Exit")
@@ -86,3 +93,94 @@ class Menu:
                 self.highlighted = 0
             else:
                 self.highlighted += 1
+
+
+class Bullet(Sprite):
+    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple):
+        super().__init__()
+
+        self.image = Surface((8, 8))
+        self.image.fill(GOLD)
+        self.rect = self.image.get_rect(center=position)
+        self.bounces = 1
+
+        if moving_left:
+            self.vector = Vector2(-speeds[0], speeds[1])
+
+        else:
+            self.vector = Vector2(speeds[0], speeds[1])
+
+        self.damage = randint(damage[0], damage[1])
+
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+    def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group, texts: Group):
+        # update bullet x position
+        self.rect.x += self.vector.x
+
+        # check for x collisions with tiles
+        for tile in tiles:
+            if self.rect.colliderect(tile.rect):
+                if self.bounces > 0:
+                    if self.vector.x > 0:
+                        self.rect.right = tile.rect.left
+                    else:
+                        self.rect.left = tile.rect.right
+                    self.vector.x *= -1
+                    self.bounces -= 1
+                    break
+                else:
+                    self.kill()
+
+        # update bullet y position
+        self.rect.y += self.vector.y
+
+        # check for y collisions with tiles
+        for tile in tiles:
+            if self.rect.colliderect(tile.rect):
+                if self.bounces > 0:
+                    if self.vector.y > 0:
+                        self.rect.bottom = tile.rect.top
+                    else:
+                        self.rect.top = tile.rect.bottom
+                    self.vector.y *= -1
+                    self.bounces -= 1
+                else:
+                    self.kill()
+
+        # check for collisions with enemies
+        for enemy in enemies:
+            if self.rect.colliderect(enemy.rect):
+                enemy.get_damage(self.damage)
+                texts.add(DamageText((randint(enemy.rect.left, enemy.rect.right), randint(enemy.rect.top - 16, enemy.rect.top + 16)), str(self.damage), WHITE))
+                self.kill()
+
+        # draw bullet
+        self.draw(screen, scroll)
+
+
+class Gold(Sprite):
+    def __init__(self, position: tuple, amount: int):
+        super().__init__()
+        self.amount = amount
+        self.image = scale2x(load(f"data/img/gold/{amount}.png").convert_alpha())
+        self.rect = self.image.get_rect(midbottom=position)
+        self.vel_y = 0
+
+    def check_vertical_collisions(self, tiles: set):
+        for tile in tiles:
+            if tile.rect.colliderect(self.rect): 
+                self.rect.bottom = tile.rect.top
+                self.vel_y = 0
+                break
+
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+    def update(self, screen: Surface, scroll: list, tiles: set):
+        self.vel_y += GRAVITY
+        self.rect.y += self.vel_y
+        self.check_vertical_collisions(tiles)
+
+        self.draw(screen, scroll)

@@ -1,15 +1,14 @@
 from math import sin
 from random import choice, randint
 
-from pygame.image import load
-from pygame.transform import scale2x
 from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import BLUE, GOLD, GRAVITY, ORANGE, RED, TILE_SIZE, WHITE, GREEN
+from .classes import Bullet, Gold
+from .constants import BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE
 from .texts import DamageText
 
 
@@ -379,94 +378,3 @@ class Enemy(Sprite):
 
         # draw enemy on the screen
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-
-class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple):
-        super().__init__()
-
-        self.image = Surface((8, 8))
-        self.image.fill(GOLD)
-        self.rect = self.image.get_rect(center=position)
-        self.bounces = 1
-
-        if moving_left:
-            self.vector = Vector2(-speeds[0], speeds[1])
-
-        else:
-            self.vector = Vector2(speeds[0], speeds[1])
-
-        self.damage = randint(damage[0], damage[1])
-
-    def draw(self, screen: Surface, scroll: list):
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-    def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group, texts: Group):
-        # update bullet x position
-        self.rect.x += self.vector.x
-
-        # check for x collisions with tiles
-        for tile in tiles:
-            if self.rect.colliderect(tile.rect):
-                if self.bounces > 0:
-                    if self.vector.x > 0:
-                        self.rect.right = tile.rect.left
-                    else:
-                        self.rect.left = tile.rect.right
-                    self.vector.x *= -1
-                    self.bounces -= 1
-                    break
-                else:
-                    self.kill()
-
-        # update bullet y position
-        self.rect.y += self.vector.y
-
-        # check for y collisions with tiles
-        for tile in tiles:
-            if self.rect.colliderect(tile.rect):
-                if self.bounces > 0:
-                    if self.vector.y > 0:
-                        self.rect.bottom = tile.rect.top
-                    else:
-                        self.rect.top = tile.rect.bottom
-                    self.vector.y *= -1
-                    self.bounces -= 1
-                else:
-                    self.kill()
-
-        # check for collisions with enemies
-        for enemy in enemies:
-            if self.rect.colliderect(enemy.rect):
-                enemy.get_damage(self.damage)
-                texts.add(DamageText((randint(enemy.rect.left, enemy.rect.right), randint(enemy.rect.top - 16, enemy.rect.top + 16)), str(self.damage), WHITE))
-                self.kill()
-
-        # draw bullet
-        self.draw(screen, scroll)
-
-
-class Gold(Sprite):
-    def __init__(self, position: tuple, amount: int):
-        super().__init__()
-        self.amount = amount
-        self.image = scale2x(load(f"data/img/gold/{amount}.png").convert_alpha())
-        self.rect = self.image.get_rect(midbottom=position)
-        self.vel_y = 0
-
-    def check_vertical_collisions(self, tiles: set):
-        for tile in tiles:
-            if tile.rect.colliderect(self.rect): 
-                self.rect.bottom = tile.rect.top
-                self.vel_y = 0
-                break
-
-    def draw(self, screen: Surface, scroll: list):
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
-
-    def update(self, screen: Surface, scroll: list, tiles: set):
-        self.vel_y += GRAVITY
-        self.rect.y += self.vel_y
-        self.check_vertical_collisions(tiles)
-
-        self.draw(screen, scroll)

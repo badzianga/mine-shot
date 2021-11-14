@@ -27,9 +27,6 @@ def game_loop():
     toggle_fps = False
 
     while True:
-        # clear screen
-        screen.fill(BLACK)
-
         # run level
         if level.player.health > 0:
             level.run()

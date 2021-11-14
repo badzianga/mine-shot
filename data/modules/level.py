@@ -6,9 +6,10 @@ from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
 from pygame.transform import scale2x
+from pygame.locals import BLEND_RGBA_MIN, BLEND_RGBA_MAX, BLEND_RGBA_MULT
 
 from .classes import HealthBar, ManaBar
-from .constants import BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Enemy, Player
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
@@ -47,6 +48,13 @@ class Level:
 
         # earthquake
         self.screen_shake = 0
+
+        # darkness
+        self.darkness = False
+        self.player_light = load("data/img/lights/player_light.png").convert_alpha()
+        self.torch_light = load("data/img/lights/torch_light.png").convert_alpha()
+        self.torch_particle_light = load("data/img/lights/torch_particle_light.png").convert_alpha()
+        self.bullet_light = load("data/img/lights/bullet_light.png").convert_alpha()
 
     def load_level(self):
         # images 
@@ -189,9 +197,11 @@ class Level:
                            SCREEN_SIZE[0] + 256, SCREEN_SIZE[1] + 256)
 
         # update and draw bullets
-        for bullet in self.bullet_group:
+        for bullet in self.bullet_group.copy():
             if active_rect.colliderect(bullet.rect):
                 bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies, self.texts)
+            else:
+                bullet.kill()
 
         # draw gold
         for gold in self.gold_group:
@@ -214,11 +224,24 @@ class Level:
         # update and draw torch particles
         for particle in self.torch_particles.copy():
             particle.update(self.screen, self.scroll)
-            if particle.timer <= 0:
+            if particle.timer < 0.5:
                 self.torch_particles.remove(particle)
 
         # draw texts
         self.texts.update(self.screen, self.scroll)
+
+        # darkness effect
+        if self.darkness:
+            darkness = Surface(SCREEN_SIZE)
+            darkness.fill(BLACK)
+            darkness.blit(self.player_light, self.player_light.get_rect(center=(self.player.rect.centerx - self.scroll[0], self.player.rect.centery - self.scroll[1])))
+            for torch in objects["torches"]:
+                darkness.blit(self.torch_light, self.torch_light.get_rect(center=(torch.rect.centerx - self.scroll[0], torch.rect.centery - self.scroll[1])))
+            for particle in self.torch_particles:
+                darkness.blit(self.torch_particle_light, self.torch_particle_light.get_rect(center=(particle.position[0] - self.scroll[0], particle.position[1] - self.scroll[1])))
+            for bullet in self.bullet_group:
+                darkness.blit(self.bullet_light, self.bullet_light.get_rect(center=(bullet.rect.centerx - self.scroll[0], bullet.rect.centery - self.scroll[1])))
+            self.screen.blit(darkness, (0, 0), special_flags=BLEND_RGBA_MULT)
 
         # draw UI
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)

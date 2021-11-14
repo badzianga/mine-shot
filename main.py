@@ -2,8 +2,9 @@
 from sys import exit
 
 import pygame
-from pygame.locals import (K_DOWN, K_ESCAPE, K_F11, K_F12, K_LEFT, K_RIGHT,
-                           K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c, K_x, K_z)
+from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
+                           K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c,
+                           K_x, K_z)
 
 from data.modules.classes import Menu
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
@@ -12,12 +13,13 @@ from data.modules.level import Level
 # Init ---------------------------------------------------------------------- #
 pygame.init()
 
-screen = pygame.display.set_mode(SCREEN_SIZE , 0, 32)
+screen = pygame.display.set_mode(SCREEN_SIZE)
 pygame.display.set_caption("The Mine")
 
 clock = pygame.time.Clock()
 
 fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
+
 
 # Game loop ----------------------------------------------------------------- #
 def game_loop():
@@ -77,6 +79,9 @@ def game_loop():
                         fps = 10000
                     else:
                         fps = FPS
+                # toggle darkness effect
+                if event.key == K_F10:
+                    level.darkness = not level.darkness
 
             if event.type == KEYUP:
                 # stop moving player left
@@ -145,6 +150,7 @@ def main_menu():
 
         # update menu (change highlight)
         menu.update()
+
         pygame.display.update()
         clock.tick(FPS)
 

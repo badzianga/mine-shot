@@ -305,7 +305,7 @@ class Enemy(Sprite):
         self.idling = False
         self.idling_counter = 0
 
-        self.gold_amount = choice((1, 2, 4, 8, 16, 32))
+        self.gold_amount = randint(1, 8)
 
     def get_damage(self, damage: int):
         self.health -= damage

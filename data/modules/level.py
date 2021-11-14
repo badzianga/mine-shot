@@ -58,6 +58,7 @@ class Level:
         lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
         spider_imgs = load_images("data/img/spider", "Spider_", 1, 1)
         bg_stone_img = scale2x(scale2x(load("data/img/background_stone.png").convert()))
+        decoration_imgs = load_images("data/img/decorations", "Deco_", 1, 1)
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8
@@ -65,7 +66,7 @@ class Level:
             for x in range(len(MAP[0]) // CHUNK_SIZE):
                 self.game_map[f"{x};{y}"] = {"tiles": set(), "ladders": set(), "platforms": set(),
                                              "torches": set(), "lava": set(), "animated_tiles": set(),
-                                             "bg_tiles": set()}
+                                             "bg_tiles": set(), "decorations": set()}
 
         # load level data from tuple
         for y, row in enumerate(MAP):
@@ -92,6 +93,8 @@ class Level:
                 # create animated tiles (spiders) and add them to chunks
                 elif cell == "S":
                     self.game_map[current_chunk]["animated_tiles"].add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs, 0.1))
+                elif cell.isdigit():
+                    self.game_map[current_chunk]["decorations"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), decoration_imgs[int(cell) - 1]))
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
@@ -134,7 +137,7 @@ class Level:
         # create set with objects from active chunks (all objects except player and enemies!)
         objects = {"tiles": set(), "ladders": set(), "platforms": set(),
                    "torches": set(), "lava": set(), "animated_tiles": set(),
-                   "bg_tiles": set()}
+                   "bg_tiles": set(), "decorations": set()}
 
         # iterate through every active chunk
         for y in range(3):
@@ -151,6 +154,7 @@ class Level:
                     objects["lava"] |= self.game_map[target_chunk]["lava"]
                     objects["animated_tiles"] |= self.game_map[target_chunk]["animated_tiles"]
                     objects["bg_tiles"] |= self.game_map[target_chunk]["bg_tiles"]
+                    objects["decorations"] |= self.game_map[target_chunk]["decorations"]
 
         # draw background tiles
         for tile in objects["bg_tiles"]:
@@ -159,6 +163,10 @@ class Level:
         # draw tiles
         for tile in objects["tiles"]:
             tile.draw(self.screen, self.scroll)
+
+        # draw decorations
+        for decoration in objects["decorations"]:
+            decoration.draw(self.screen, self.scroll)
 
         # draw ladders
         for ladder in objects["ladders"]:

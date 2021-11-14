@@ -13,9 +13,9 @@ from .texts import DamageText
 
 class HealthBar:
     def __init__(self):
-        self.health_border = scale2x(load("data/img/bar_border.png").convert_alpha())
-        self.empty_bar = scale2x(load("data/img/empty_bar.png").convert_alpha())
-        self.health_bar = scale2x(load("data/img/health_bar.png").convert_alpha())
+        self.health_border = scale2x(load("data/img/bars/bar_border.png").convert_alpha())
+        self.empty_bar = scale2x(load("data/img/bars/empty_bar.png").convert_alpha())
+        self.health_bar = scale2x(load("data/img/bars/health_bar.png").convert_alpha())
         self.size = self.health_bar.get_size()
 
     def draw(self, screen: Surface, health: int, max_health: int):
@@ -32,9 +32,9 @@ class HealthBar:
 
 class ManaBar:
     def __init__(self):
-        self.mana_border = scale2x(load("data/img/bar_border.png").convert_alpha())
-        self.empty_bar = scale2x(load("data/img/empty_bar.png").convert_alpha())
-        self.mana_bar = scale2x(load("data/img/mana_bar.png").convert_alpha())
+        self.mana_border = scale2x(load("data/img/bars/bar_border.png").convert_alpha())
+        self.empty_bar = scale2x(load("data/img/bars/empty_bar.png").convert_alpha())
+        self.mana_bar = scale2x(load("data/img/bars/mana_bar.png").convert_alpha())
         self.size = self.mana_bar.get_size()
 
     def draw(self, screen: Surface, mana: float, max_mana: int):
@@ -164,7 +164,19 @@ class Gold(Sprite):
     def __init__(self, position: tuple, amount: int):
         super().__init__()
         self.amount = amount
-        self.image = scale2x(load(f"data/img/gold/{amount}.png").convert_alpha())
+        if amount == 1:
+            i = 1
+        elif amount < 4:
+            i = 2
+        elif amount < 8:
+            i = 4
+        elif amount < 16:
+            i = 8
+        elif amount < 32:
+            i = 16
+        else:
+            i = 32
+        self.image = scale2x(load(f"data/img/gold/{i}.png").convert_alpha())
         self.rect = self.image.get_rect(midbottom=position)
         self.vel_y = 0
 

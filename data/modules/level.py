@@ -203,5 +203,5 @@ class Level:
         # draw UI
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)
         self.mana_bar.draw(self.screen, self.player.mana, self.player.max_mana)
-        gold_amount = self.font.render(f"GOLD: {self.player.gold}", False, WHITE)
+        gold_amount = self.font.render(f"$: {self.player.gold}", False, WHITE)
         self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 181, 78))

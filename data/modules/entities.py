@@ -9,7 +9,7 @@ from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
 
-from .constants import BLUE, GOLD, GRAVITY, RED, TILE_SIZE, WHITE
+from .constants import BLUE, GOLD, GRAVITY, ORANGE, RED, TILE_SIZE, WHITE, GREEN
 from .texts import DamageText
 
 
@@ -39,7 +39,7 @@ class Player(Sprite):
         self.mana = 100
         self.invincible = False
         self.invincibility_duration = 90  # frames
-        self.debuffs = {"burning": 0}  # debuff name: amount of get_damage to get
+        self.debuffs = {"burning": 0, "poison": 0}  # debuff name: amount of get_damage to get
 
         # shooting
         self.shoot_cooldown = 0
@@ -56,7 +56,13 @@ class Player(Sprite):
 
     def get_damage(self, damage: int, texts: Group):
         self.health -= damage
-        texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), RED))
+        if self.debuffs["burning"] > 0:
+            color = ORANGE
+        elif self.debuffs["poison"] > 0:
+            color = GREEN
+        else:
+            color = RED
+        texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), color))
         self.invincible = True
 
     def shoot(self, bullet_group: Group):
@@ -201,7 +207,7 @@ class Player(Sprite):
         for gold in gold_group:
             if self.rect.colliderect(gold.rect):
                 self.gold += gold.amount
-                texts.add(DamageText(self.rect.midtop, str(gold.amount), GOLD))
+                texts.add(DamageText(self.rect.midtop, f"{gold.amount}$", GOLD))
                 gold.kill()
 
     def draw(self, screen: Surface, scroll: set):

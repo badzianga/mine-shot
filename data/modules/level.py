@@ -1,7 +1,8 @@
 from random import randint
 from pygame.font import Font
+from json import load as load_json
 
-from pygame.image import load
+from pygame.image import load as load_image
 from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
@@ -10,7 +11,7 @@ from pygame.locals import BLEND_RGBA_MULT
 
 from .classes import HealthBar, ManaBar
 from .constants import BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
-from .entities import Enemy, Player
+from .entities import Enemy0, Player
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
 
@@ -50,23 +51,27 @@ class Level:
         self.screen_shake = 0
 
         # darkness
-        self.darkness = True
-        self.player_light = load("data/img/lights/player_light.png").convert_alpha()
-        self.torch_light = load("data/img/lights/torch_light.png").convert_alpha()
-        self.torch_particle_light = load("data/img/lights/torch_particle_light.png").convert_alpha()
-        self.bullet_light = load("data/img/lights/bullet_light.png").convert_alpha()
+        self.darkness = False
+        self.player_light = load_image("data/img/lights/player_light.png").convert_alpha()
+        self.torch_light = load_image("data/img/lights/torch_light.png").convert_alpha()
+        self.torch_particle_light = load_image("data/img/lights/torch_particle_light.png").convert_alpha()
+        self.bullet_light = load_image("data/img/lights/bullet_light.png").convert_alpha()
 
     def load_level(self):
         # images 
-        stone_img = scale2x(scale2x(load("data/img/stone.png").convert()))
-        ladder_img = load("data/img/ladder.png").convert_alpha()
+        stone_img = scale2x(scale2x(load_image("data/img/stone.png").convert()))
+        ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = Surface((TILE_SIZE, TILE_SIZE // 8))
         platform_img.fill(BROWN)
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
         spider_imgs = load_images("data/img/spider", "Spider_", 1, 1)
-        bg_stone_img = scale2x(scale2x(load("data/img/background_stone.png").convert()))
+        bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         decoration_imgs = load_images("data/img/decorations", "Deco_", 1, 1)
+
+        # enemies data (their stats)
+        with open("data/json/enemies.json", "r") as json_file:
+            enemies_data = load_json(json_file)
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8
@@ -108,7 +113,7 @@ class Level:
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
                 # create enemies
                 elif cell == "E":
-                    self.enemies.add(Enemy((x * TILE_SIZE, y * TILE_SIZE)))
+                    self.enemies.add(Enemy0((x * TILE_SIZE, y * TILE_SIZE), enemies_data["slime"]["hp"], enemies_data["slime"]["damage"], enemies_data["slime"]["speed"], enemies_data["slime"]["gold"]))
                 # create stone background tiles and add them to chunks
                 if cell != "X":
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))

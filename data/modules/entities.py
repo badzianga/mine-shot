@@ -6,6 +6,7 @@ from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
+from pygame.draw import rect as draw_rect
 from pygame.time import get_ticks
 
 from .classes import Bullet, Gold
@@ -290,28 +291,47 @@ class Player(Sprite):
         self.draw(screen, scroll)
 
 
-class Enemy(Sprite):
-    def __init__(self, position: tuple):
+class EnemyBase(Sprite):
+    def __init__(self, position, hp, damage, speed, gold):
         super().__init__()
+
+        # image and rect
         self.image = Surface((TILE_SIZE // 2, TILE_SIZE - 8))
         self.image.fill(RED)
-
         self.rect = self.image.get_rect(topleft=(position[0], position[1] + 8))
 
-        self.health = 10
-        self.blinking = 0
+        # health, damage, speed and gold amount from config file
+        if isinstance(hp, list):
+            self.health = randint(hp[0], hp[1])
+        else:
+            self.health = hp
 
-        self.speed = randint(3, 5)
-        self.vel_y = 0
-        self.damage = (1, 3)
+        self.damage = tuple(damage)
+
+        if isinstance(speed, list):
+            self.speed = randint(speed[0], speed[1])
+        else:
+            self.speed = speed
+
+        if isinstance(gold, list):
+            self.gold_amount = randint(gold[0], gold[1])
+        else:
+            self.gold_amount = gold
+
+        self.blinking = 0  # blinking time after damaged
+
+        self.vel_y = 0  # current falling speed
+
+        # current status and idle time
         self.idling = False
         self.idling_counter = 0
-
-        self.gold_amount = randint(1, 8)
 
     def get_damage(self, damage: int):
         self.health -= damage
         self.blinking = 30
+
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -335,6 +355,11 @@ class Enemy(Sprite):
                 self.vel_y = 0
                 break
 
+
+class Enemy0(EnemyBase):
+    def __init__(self, position: tuple, hp, damage, speed, gold):
+        super().__init__(position, hp, damage, speed, gold)
+
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, gold_group: Group):
         # update x position and check for horizontal collisions
         self.rect.x += self.speed
@@ -354,7 +379,6 @@ class Enemy(Sprite):
             if randint(1, 200) == 1:
                 self.idling = True
                 self.idling_counter = randint(30, 70)
-
         else:
             self.idling_counter -= 1
             # after idle - stop idling, randomly select direction of moving
@@ -371,12 +395,82 @@ class Enemy(Sprite):
                 self.image.set_alpha(63)
         else:
             self.image.set_alpha(255)
-            
+
 
         # kill enemy is health below or equals 0
         if self.health <= 0:
-            gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
+            if self.gold_amount > 0:
+                gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
             self.kill()
 
         # draw enemy on the screen
-        screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+        self.draw(screen, scroll)
+
+
+class Enemy1(EnemyBase):
+    def __init__(self, position: tuple, hp, damage, speed, gold):
+        super().__init__(position, hp, damage, speed, gold)
+
+        self.vision_rect = Rect(0, 0, 640, 240)
+
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, gold_group: Group, player_rect: Rect):
+        # update x position and check for horizontal collisions
+        self.rect.x += self.speed
+        self.check_horizontal_collisions(tiles)
+
+        # update position and check collisions with tiles
+        self.vel_y += GRAVITY
+        self.rect.y += self.vel_y
+        self.check_vertical_collisions(set.union(tiles, platforms))
+
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vel_y > 18:
+            self.vel_y = 18
+
+        if not self.idling:
+            # random idle
+            if randint(1, 200) == 1:
+                self.idling = True
+                self.idling_counter = randint(30, 70)
+        else:
+            self.idling_counter -= 1
+            # after idle - stop idling, randomly select direction of moving
+            if self.idling_counter <= 0:
+                self.idling = False
+                self.speed *= choice((-1, 1))
+
+        # update enemy vision
+        self.vision_rect.midbottom = self.rect.midbottom
+        # if enemy "sees" the player
+        if self.vision_rect.colliderect(player_rect):
+            self.idling = False
+            # change enemy direction to go after the player
+            if player_rect.centerx < self.rect.centerx:
+                if self.speed > 0:
+                    self.speed *= -1
+            elif player_rect.centerx > self.rect.centerx:
+                if self.speed < 0:
+                    self.speed *= -1
+        # TEMP: enemy vision
+        # draw_rect(screen, GOLD, (self.vision_rect.left - scroll[0], self.vision_rect.top - scroll[1], self.vision_rect.width, self.vision_rect.height))
+
+        # blinking if damaged
+        if self.blinking:
+            self.blinking -= 1
+            if sin(get_ticks()) >= 0:
+                self.image.set_alpha(255)
+            else:
+                self.image.set_alpha(63)
+        else:
+            self.image.set_alpha(255)
+
+
+        # kill enemy is health below or equals 0
+        if self.health <= 0:
+            if self.gold_amount > 0:
+                gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
+            self.kill()
+
+        # draw enemy on the screen
+        self.draw(screen, scroll)
+

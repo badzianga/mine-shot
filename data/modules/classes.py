@@ -96,11 +96,10 @@ class Menu:
 
 
 class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple):
+    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple, image: Surface):
         super().__init__()
 
-        self.image = Surface((8, 8))
-        self.image.fill(GOLD)
+        self.image = image
         self.rect = self.image.get_rect(center=position)
         self.bounces = 1
 

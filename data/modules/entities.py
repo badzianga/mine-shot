@@ -1,6 +1,7 @@
 from math import sin
 from random import choice, randint
 
+from pygame.image import load
 from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
@@ -20,6 +21,7 @@ class Player(Sprite):
         self.image = Surface((TILE_SIZE // 2, TILE_SIZE - 8))
         self.image.fill(BLUE)
         self.flip = False
+        self.bullet_img = load("data/img/bullet.png").convert_alpha()
 
         # collision rect
         self.rect = self.image.get_rect(topleft=position)
@@ -68,17 +70,17 @@ class Player(Sprite):
         if self.shoot_cooldown <= 0:
             self.shoot_cooldown = 45
             if self.up:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, -15), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, -16), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, -17), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, -15), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, -16), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, -17), self.damage, self.bullet_img))
             elif self.down:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, 15), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, 16), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, 17), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, 15), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, 16), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, 17), self.damage, self.bullet_img))
             else:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, -2), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20,  0), self.damage))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, 2), self.damage))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, -2), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20,  0), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, 2), self.damage, self.bullet_img))
 
     def burst(self, bullet_group: Group):
         if self.shoot_cooldown <= 0 and self.mana >= 40:
@@ -86,13 +88,13 @@ class Player(Sprite):
             self.shoot_cooldown = 60
             if self.up:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(-20, -16)), self.damage))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(-20, -16)), self.damage, self.bullet_img))
             elif self.down:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(16, 20)), self.damage))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(16, 20)), self.damage, self.bullet_img))
             else:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(16, 20), randint(-5, 5)), self.damage))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(16, 20), randint(-5, 5)), self.damage, self.bullet_img))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:

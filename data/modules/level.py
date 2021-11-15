@@ -6,7 +6,7 @@ from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
 from pygame.transform import scale2x
-from pygame.locals import BLEND_RGBA_MIN, BLEND_RGBA_MAX, BLEND_RGBA_MULT
+from pygame.locals import BLEND_RGBA_MULT
 
 from .classes import HealthBar, ManaBar
 from .constants import BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
@@ -50,7 +50,7 @@ class Level:
         self.screen_shake = 0
 
         # darkness
-        self.darkness = False
+        self.darkness = True
         self.player_light = load("data/img/lights/player_light.png").convert_alpha()
         self.torch_light = load("data/img/lights/torch_light.png").convert_alpha()
         self.torch_particle_light = load("data/img/lights/torch_particle_light.png").convert_alpha()
@@ -206,7 +206,7 @@ class Level:
         # draw gold
         for gold in self.gold_group:
             if active_rect.colliderect(gold.rect):
-                gold.update(self.screen, self.scroll, objects["tiles"])
+                gold.update(self.screen, self.scroll, set.union(objects["tiles"], objects["platforms"]))
 
         # update and draw enemies
         for enemy in self.enemies:
@@ -230,17 +230,23 @@ class Level:
         # draw texts
         self.texts.update(self.screen, self.scroll)
 
-        # darkness effect
+        # darkness and light effects
         if self.darkness:
+            # create darkness surface
             darkness = Surface(SCREEN_SIZE)
             darkness.fill(BLACK)
+            # player light
             darkness.blit(self.player_light, self.player_light.get_rect(center=(self.player.rect.centerx - self.scroll[0], self.player.rect.centery - self.scroll[1])))
+            # torch lights
             for torch in objects["torches"]:
                 darkness.blit(self.torch_light, self.torch_light.get_rect(center=(torch.rect.centerx - self.scroll[0], torch.rect.centery - self.scroll[1])))
+            # torch particle lights
             for particle in self.torch_particles:
                 darkness.blit(self.torch_particle_light, self.torch_particle_light.get_rect(center=(particle.position[0] - self.scroll[0], particle.position[1] - self.scroll[1])))
+            # bullet lights
             for bullet in self.bullet_group:
                 darkness.blit(self.bullet_light, self.bullet_light.get_rect(center=(bullet.rect.centerx - self.scroll[0], bullet.rect.centery - self.scroll[1])))
+
             self.screen.blit(darkness, (0, 0), special_flags=BLEND_RGBA_MULT)
 
         # draw UI

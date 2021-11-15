@@ -66,7 +66,7 @@ MAP = (
     "XX                                                                            XX",
     "XX                                                                            XX",
     "XX                                                                            XX",
-    "XX                                                                            XX",
+    "XX                                           XXXX                             XX",
     "XX                                            E                               XX",
     "XX                                                                            XX",
     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",

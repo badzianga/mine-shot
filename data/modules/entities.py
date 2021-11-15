@@ -6,7 +6,7 @@ from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
-from pygame.draw import rect as draw_rect
+# from pygame.draw import rect as draw_rect
 from pygame.time import get_ticks
 
 from .classes import Bullet, Gold
@@ -71,17 +71,17 @@ class Player(Sprite):
         if self.shoot_cooldown <= 0:
             self.shoot_cooldown = 45
             if self.up:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, -15), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, -16), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, -17), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -55, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -60, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -65, self.damage, self.bullet_img))
             elif self.down:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (10, 15), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (8, 16), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (6, 17), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 55, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 60, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 65, self.damage, self.bullet_img))
             else:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, -2), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20,  0), self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (20, 2), self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 5, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 0, self.damage, self.bullet_img))
+                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -5, self.damage, self.bullet_img))
 
     def burst(self, bullet_group: Group):
         if self.shoot_cooldown <= 0 and self.mana >= 40:
@@ -89,13 +89,13 @@ class Player(Sprite):
             self.shoot_cooldown = 60
             if self.up:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(-20, -16)), self.damage, self.bullet_img))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-70, -50), self.damage, self.bullet_img))
             elif self.down:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(-3, 3), randint(16, 20)), self.damage, self.bullet_img))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(50, 70), self.damage, self.bullet_img))
             else:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, (randint(16, 20), randint(-5, 5)), self.damage, self.bullet_img))
+                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-10, 10), self.damage, self.bullet_img))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -320,7 +320,7 @@ class EnemyBase(Sprite):
 
         self.blinking = 0  # blinking time after damaged
 
-        self.vel_y = 0  # current falling speed
+        self.vector = Vector2(0, 0)
 
         # current status and idle time
         self.idling = False
@@ -339,12 +339,12 @@ class EnemyBase(Sprite):
                 # touching right wall
                 if self.speed < 0:
                     self.rect.left = tile.rect.right
-                    self.speed *= -1
+                    self.vector.x *= -1
                     break
                 # touching left wall
                 elif self.speed > 0:
                     self.rect.right = tile.rect.left
-                    self.speed *= -1
+                    self.vector.x *= -1
                     break
 
     def check_vertical_collisions(self, tiles: set):
@@ -352,7 +352,7 @@ class EnemyBase(Sprite):
             if tile.rect.colliderect(self.rect):
                 # touching floor - stop falling
                 self.rect.bottom = tile.rect.top
-                self.vel_y = 0
+                self.vector.y = 0
                 break
 
 
@@ -360,21 +360,14 @@ class Enemy0(EnemyBase):
     def __init__(self, position: tuple, hp, damage, speed, gold):
         super().__init__(position, hp, damage, speed, gold)
 
+        self.vector.x = self.speed * choice((-1, 1))
+
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, gold_group: Group):
-        # update x position and check for horizontal collisions
-        self.rect.x += self.speed
-        self.check_horizontal_collisions(tiles)
-
-        # update position and check collisions with tiles
-        self.vel_y += GRAVITY
-        self.rect.y += self.vel_y
-        self.check_vertical_collisions(set.union(tiles, platforms))
-
-        # set max falling spedd - temp fix for bug with platform collision
-        if self.vel_y > 18:
-            self.vel_y = 18
-
         if not self.idling:
+            # update x position and check for horizontal collisions
+            self.rect.x += self.vector.x
+            self.check_horizontal_collisions(tiles)
+
             # random idle
             if randint(1, 200) == 1:
                 self.idling = True
@@ -384,7 +377,16 @@ class Enemy0(EnemyBase):
             # after idle - stop idling, randomly select direction of moving
             if self.idling_counter <= 0:
                 self.idling = False
-                self.speed *= choice((-1, 1))
+                self.vector.x *= choice((-1, 1))
+
+        # update position and check collisions with tiles
+        self.vector.y += GRAVITY
+        self.rect.y += self.vector.y
+        self.check_vertical_collisions(set.union(tiles, platforms))
+
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vector.y > 18:
+            self.vector.y = 18
 
         # blinking if damaged
         if self.blinking:
@@ -414,30 +416,30 @@ class Enemy1(EnemyBase):
         self.vision_rect = Rect(0, 0, 640, 240)
 
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, gold_group: Group, player_rect: Rect):
-        # update x position and check for horizontal collisions
-        self.rect.x += self.speed
-        self.check_horizontal_collisions(tiles)
-
-        # update position and check collisions with tiles
-        self.vel_y += GRAVITY
-        self.rect.y += self.vel_y
-        self.check_vertical_collisions(set.union(tiles, platforms))
-
-        # set max falling spedd - temp fix for bug with platform collision
-        if self.vel_y > 18:
-            self.vel_y = 18
-
         if not self.idling:
             # random idle
             if randint(1, 200) == 1:
                 self.idling = True
                 self.idling_counter = randint(30, 70)
+                
+            # update x position and check for horizontal collisions
+            self.rect.x += self.vector.x
+            self.check_horizontal_collisions(tiles)
         else:
             self.idling_counter -= 1
             # after idle - stop idling, randomly select direction of moving
             if self.idling_counter <= 0:
                 self.idling = False
-                self.speed *= choice((-1, 1))
+                self.vector.x *= choice((-1, 1))
+
+        # update position and check collisions with tiles
+        self.vector.y += GRAVITY
+        self.rect.y += self.vector.y
+        self.check_vertical_collisions(set.union(tiles, platforms))
+
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vector.y > 18:
+            self.vector.y = 18
 
         # update enemy vision
         self.vision_rect.midbottom = self.rect.midbottom
@@ -445,12 +447,14 @@ class Enemy1(EnemyBase):
         if self.vision_rect.colliderect(player_rect):
             self.idling = False
             # change enemy direction to go after the player
-            if player_rect.centerx < self.rect.centerx:
-                if self.speed > 0:
-                    self.speed *= -1
-            elif player_rect.centerx > self.rect.centerx:
-                if self.speed < 0:
-                    self.speed *= -1
+            if player_rect.x < self.rect.x - 5:
+                    self.vector.x = -self.speed
+            elif player_rect.x > self.rect.x + 5:
+                    self.vector.x = self.speed
+            else:
+                self.vector.x = 0
+        elif self.vector.x == 0:
+            self.vector.x = self.speed * choice((-1, 1))
         # TEMP: enemy vision
         # draw_rect(screen, GOLD, (self.vision_rect.left - scroll[0], self.vision_rect.top - scroll[1], self.vision_rect.width, self.vision_rect.height))
 
@@ -473,4 +477,3 @@ class Enemy1(EnemyBase):
 
         # draw enemy on the screen
         self.draw(screen, scroll)
-

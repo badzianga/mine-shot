@@ -1,4 +1,5 @@
 from random import randint
+from math import sin, cos, radians
 
 from pygame.font import Font
 from pygame.image import load
@@ -7,7 +8,7 @@ from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.transform import scale2x
 
-from .constants import GOLD, GRAVITY, LIGHT_PURPLE, SCREEN_SIZE, WHITE
+from .constants import GRAVITY, LIGHT_PURPLE, SCREEN_SIZE, WHITE
 from .texts import DamageText
 
 
@@ -96,18 +97,19 @@ class Menu:
 
 
 class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_left: bool, speeds: tuple, damage: tuple, image: Surface):
+    def __init__(self, position: tuple, moving_left: bool, speed: int, angle_deg: int, damage: tuple, image: Surface):
         super().__init__()
 
         self.image = image
         self.rect = self.image.get_rect(center=position)
+        self.true_position = Vector2(position[0], position[1])
         self.bounces = 1
 
         if moving_left:
-            self.vector = Vector2(-speeds[0], speeds[1])
+            self.vector = Vector2(-speed * cos(radians(angle_deg)), speed * sin(radians(angle_deg)))
 
         else:
-            self.vector = Vector2(speeds[0], speeds[1])
+            self.vector = Vector2(speed * cos(radians(angle_deg)), speed * sin(radians(angle_deg)))
 
         self.damage = randint(damage[0], damage[1])
 
@@ -116,7 +118,8 @@ class Bullet(Sprite):
 
     def update(self, screen: Surface, scroll: list,  tiles: set, enemies: Group, texts: Group):
         # update bullet x position
-        self.rect.x += self.vector.x
+        self.true_position.x += self.vector.x
+        self.rect.x = int(self.true_position.x)
 
         # check for x collisions with tiles
         for tile in tiles:
@@ -133,7 +136,8 @@ class Bullet(Sprite):
                     self.kill()
 
         # update bullet y position
-        self.rect.y += self.vector.y
+        self.true_position.y += self.vector.y
+        self.rect.y = int(self.true_position.y)
 
         # check for y collisions with tiles
         for tile in tiles:

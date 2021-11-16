@@ -11,7 +11,7 @@ from pygame.locals import BLEND_RGBA_MULT
 
 from .classes import HealthBar, ManaBar
 from .constants import BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
-from .entities import Enemy0, Player
+from .entities import Enemy0, Enemy1, Enemy2, Player
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
 
@@ -56,6 +56,12 @@ class Level:
         self.torch_light = load_image("data/img/lights/torch_light.png").convert_alpha()
         self.torch_particle_light = load_image("data/img/lights/torch_particle_light.png").convert_alpha()
         self.bullet_light = load_image("data/img/lights/bullet_light.png").convert_alpha()
+
+        self.background_images = ((0, scale2x(load_image("data/img/background/background1.png").convert_alpha())),
+                                  (0.05, scale2x(load_image("data/img/background/background2.png").convert_alpha())),
+                                  (0.1, scale2x(load_image("data/img/background/background3.png").convert_alpha())),
+                                  (0.15, scale2x(load_image("data/img/background/background4.png").convert_alpha()))
+                                  )
 
     def load_level(self):
         # images 
@@ -111,9 +117,15 @@ class Level:
                 # create player
                 elif cell == "P":
                     self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
+                    self.true_scroll = [self.player.rect.x, self.player.rect.y]
+                    self.scroll = [self.player.rect.x, self.player.rect.y]
                 # create enemies
-                elif cell == "E":
-                    self.enemies.add(Enemy0((x * TILE_SIZE, y * TILE_SIZE), enemies_data["slime"]["hp"], enemies_data["slime"]["damage"], enemies_data["slime"]["speed"], enemies_data["slime"]["gold"]))
+                elif cell == "s":
+                    self.enemies.add(Enemy0((x * TILE_SIZE, y * TILE_SIZE), enemies_data["slime"]["hp"], enemies_data["slime"]["damage"], enemies_data["slime"]["speed"], enemies_data["slime"]["gold"], self.gold_group))
+                elif cell == "n":
+                    self.enemies.add(Enemy1((x * TILE_SIZE, y * TILE_SIZE), enemies_data["spider"]["hp"], enemies_data["spider"]["damage"], enemies_data["spider"]["speed"], enemies_data["spider"]["gold"], self.gold_group))
+                elif cell == "b":
+                    self.enemies.add(Enemy2((x * TILE_SIZE, y * TILE_SIZE), enemies_data["bat"]["hp"], enemies_data["bat"]["damage"], enemies_data["bat"]["speed"], enemies_data["bat"]["gold"], self.gold_group))
                 # create stone background tiles and add them to chunks
                 if cell != "X":
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
@@ -170,8 +182,12 @@ class Level:
                     objects["decorations"] |= self.game_map[target_chunk]["decorations"]
 
         # draw background tiles
-        for tile in objects["bg_tiles"]:
-            tile.draw(self.screen, self.scroll)
+        # for tile in objects["bg_tiles"]:
+        #    tile.draw(self.screen, self.scroll)
+
+        # draw background
+        for speed, image in self.background_images:
+            self.screen.blit(image, (0 - self.scroll[0] * speed, 0 - self.scroll[1] * speed))
 
         # draw tiles
         for tile in objects["tiles"]:
@@ -216,7 +232,7 @@ class Level:
         # update and draw enemies
         for enemy in self.enemies:
             if active_rect.colliderect(enemy.rect):
-                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"], self.gold_group)
+                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"], self.player.rect)
 
         # update and draw player
         self.player.update(self.screen, self.scroll, objects, self.enemies, self.texts, self.gold_group)

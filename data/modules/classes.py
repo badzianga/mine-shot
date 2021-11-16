@@ -134,6 +134,7 @@ class Bullet(Sprite):
                     break
                 else:
                     self.kill()
+                    return
 
         # update bullet y position
         self.true_position.y += self.vector.y
@@ -151,6 +152,7 @@ class Bullet(Sprite):
                     self.bounces -= 1
                 else:
                     self.kill()
+                    return
 
         # check for collisions with enemies
         for enemy in enemies:
@@ -158,6 +160,7 @@ class Bullet(Sprite):
                 enemy.get_damage(self.damage)
                 texts.add(DamageText((randint(enemy.rect.left, enemy.rect.right), randint(enemy.rect.top - 16, enemy.rect.top + 16)), str(self.damage), WHITE))
                 self.kill()
+                return
 
         # draw bullet
         self.draw(screen, scroll)

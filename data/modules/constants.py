@@ -64,11 +64,11 @@ MAP = (
     "XX                                                                            XX",
     "XX                                      P                                     XX",
     "XX                                                                            XX",
-    "XX                                                                            XX",
-    "XX                                                                            XX",
-    "XX                                           XXXX                             XX",
-    "XX                                            E                               XX",
-    "XX                                                                            XX",
+    "XXXXXXXXXXXXXXXX_XXXXXXXXXXXXXXXX_XXXXX_XXXXX_XXXXXXXXXXXXXXXX_XXXXXXXXXXXXXXXXX",
+    "XX              LX               LX    L    XL               XL               XX",
+    "XX              LX               LX    L    XL      b        XL               XX",
+    "XX               X                X         X                X                XX",
+    "XX               XnnnnnnnnnnnnnnnnX s     s X                X                XX",
     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 )

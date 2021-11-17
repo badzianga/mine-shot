@@ -1,4 +1,4 @@
-from math import sin
+from math import cos, radians, sin
 from random import choice, randint
 
 from pygame.image import load
@@ -406,13 +406,6 @@ class Enemy0(EnemyBase):
         else:
             self.image.set_alpha(255)
 
-
-        # kill enemy is health below or equals 0
-        if self.health <= 0:
-            if self.gold_amount > 0:
-                gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
-            self.kill()
-
         # draw enemy on the screen
         self.draw(screen, scroll)
 
@@ -497,15 +490,19 @@ class Enemy2(EnemyBase):
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
             if tile.rect.colliderect(self.rect):
-                # touching right wall
+                # touching tile right wall
                 if self.vector.x < 0:
                     self.rect.left = tile.rect.right
-                    # VECTOR CHANGE HERE?
+                    random_angle = randint(-90, 90)
+                    self.vector.x = self.speed * cos(radians(random_angle))
+                    self.vector.y = self.speed * sin(radians(random_angle))
                     break
-                # touching left wall
+                # touching tile left wall
                 elif self.vector.x > 0:
                     self.rect.right = tile.rect.left
-                    # VECTOR CHANGE HERE?
+                    random_angle = randint(90, 270)
+                    self.vector.x = self.speed * cos(radians(random_angle))
+                    self.vector.y = self.speed * sin(radians(random_angle))
                     break
 
     def check_vertical_collisions(self, tiles: set):
@@ -514,25 +511,33 @@ class Enemy2(EnemyBase):
                 # touching floor
                 if self.vector.y > 0:
                     self.rect.bottom = tile.rect.top
-                    # VECTOR CHANGE HERE?
+                    random_angle = randint(180, 360)
+                    self.vector.x = self.speed * cos(radians(random_angle))
+                    self.vector.y = self.speed * sin(radians(random_angle))
                     break
                 # touching ceiling
                 elif self.vector.y < 0:
                     self.rect.top = tile.rect.bottom
-                    # VECTOR CHANGE HERE?
+                    random_angle = randint(0, 180)
+                    self.vector.x = self.speed * cos(radians(random_angle))
+                    self.vector.y = self.speed * sin(radians(random_angle))
                     break
 
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
-        if not self.idling:
+        if self.move_count == 0:
+            random_angle = randint(1, 360)
+            self.vector.x = self.speed * cos(radians(random_angle))
+            self.vector.y = self.speed * sin(radians(random_angle))
             self.idling = True
-            self.idling_counter = randint(30, 70)
+            self.idling_counter = randint(30, 50)
+            self.move_count = randint(30, 50)
         
-        if not self.idling:
-            # random idle
-            if randint(1, 50) == 1:
-                self.idling = True
-                self.idling_counter = randint(30, 70)
-                
+        if self.idling:
+            self.idling_counter -= 1
+            if self.idling_counter <= 0:
+                self.idling = False
+        else:
+            self.move_count -= 1   
             # update x position and check for horizontal collisions
             self.rect.x += self.vector.x
             self.check_horizontal_collisions(tiles)
@@ -540,31 +545,25 @@ class Enemy2(EnemyBase):
             # update y position and check collisions with tiles
             self.rect.y += self.vector.y
             self.check_vertical_collisions(tiles)
-        else:
-            self.idling_counter -= 1
-            # after idle - stop idling, randomly select direction of moving
-            if self.idling_counter <= 0:
-                self.idling = False
-                # VECTOR CHANGE HERE
 
-        # update enemy vision
-        self.vision_rect.center = self.rect.center
-        # if enemy "sees" the player
-        if self.vision_rect.colliderect(player_rect):
-            self.idling = False
-            # change enemy direction to go after the player
-            if player_rect.x < self.rect.x - 5:
-                    # VECTOR CHANGE HERE
-                    pass
-            elif player_rect.x > self.rect.x + 5:
-                    # VECTOR CHANGE HERE
-                    pass
-            else:
-                # VECTOR CHANGE HERE
-                pass
-        elif self.vector.x == 0:
-            # VECTOR CHANGE HERE?
-            pass
+        # # update enemy vision
+        # self.vision_rect.center = self.rect.center
+        # # if enemy "sees" the player
+        # if self.vision_rect.colliderect(player_rect):
+        #     self.idling = False
+        #     # change enemy direction to go after the player
+        #     if player_rect.x < self.rect.x - 5:
+        #             # VECTOR CHANGE HERE
+        #             pass
+        #     elif player_rect.x > self.rect.x + 5:
+        #             # VECTOR CHANGE HERE
+        #             pass
+        #     else:
+        #         # VECTOR CHANGE HERE
+        #         pass
+        # elif self.vector.x == 0:
+        #     # VECTOR CHANGE HERE?
+        #     pass
 
         # blinking if damaged
         if self.blinking:

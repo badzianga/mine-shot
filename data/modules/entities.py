@@ -1,4 +1,4 @@
-from math import cos, radians, sin
+from math import cos, radians, sin, atan2, degrees
 from random import choice, randint
 
 from pygame.image import load
@@ -484,6 +484,7 @@ class Enemy2(EnemyBase):
         self.rect = self.image.get_rect(topleft=position)
 
         self.vision_rect = Rect(0, 0, 640, 360)
+        self.spotted_player = False
 
         self.move_count = 30
 
@@ -493,17 +494,19 @@ class Enemy2(EnemyBase):
                 # touching tile right wall
                 if self.vector.x < 0:
                     self.rect.left = tile.rect.right
-                    random_angle = randint(-90, 90)
-                    self.vector.x = self.speed * cos(radians(random_angle))
-                    self.vector.y = self.speed * sin(radians(random_angle))
+                    if not self.spotted_player:
+                        random_angle = randint(-90, 90)
+                        self.vector.x = round(self.speed * cos(radians(random_angle)))
+                        self.vector.y = round(self.speed * sin(radians(random_angle)))
                     break
                 # touching tile left wall
                 elif self.vector.x > 0:
                     self.rect.right = tile.rect.left
-                    random_angle = randint(90, 270)
-                    self.vector.x = self.speed * cos(radians(random_angle))
-                    self.vector.y = self.speed * sin(radians(random_angle))
-                    break
+                    if not self.spotted_player:
+                        random_angle = randint(90, 270)
+                        self.vector.x = round(self.speed * cos(radians(random_angle)))
+                        self.vector.y = round(self.speed * sin(radians(random_angle)))
+                        break
 
     def check_vertical_collisions(self, tiles: set):
         for tile in tiles:
@@ -511,23 +514,25 @@ class Enemy2(EnemyBase):
                 # touching floor
                 if self.vector.y > 0:
                     self.rect.bottom = tile.rect.top
-                    random_angle = randint(180, 360)
-                    self.vector.x = self.speed * cos(radians(random_angle))
-                    self.vector.y = self.speed * sin(radians(random_angle))
-                    break
+                    if not self.spotted_player:
+                        random_angle = randint(180, 360)
+                        self.vector.x = round(self.speed * cos(radians(random_angle)))
+                        self.vector.y = round(self.speed * sin(radians(random_angle)))
+                        break
                 # touching ceiling
                 elif self.vector.y < 0:
                     self.rect.top = tile.rect.bottom
-                    random_angle = randint(0, 180)
-                    self.vector.x = self.speed * cos(radians(random_angle))
-                    self.vector.y = self.speed * sin(radians(random_angle))
-                    break
+                    if not self.spotted_player:
+                        random_angle = randint(0, 180)
+                        self.vector.x = round(self.speed * cos(radians(random_angle)))
+                        self.vector.y = round(self.speed * sin(radians(random_angle)))
+                        break
 
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
         if self.move_count == 0:
             random_angle = randint(1, 360)
-            self.vector.x = self.speed * cos(radians(random_angle))
-            self.vector.y = self.speed * sin(radians(random_angle))
+            self.vector.x = round(self.speed * cos(radians(random_angle)))
+            self.vector.y = round(self.speed * sin(radians(random_angle)))
             self.idling = True
             self.idling_counter = randint(30, 50)
             self.move_count = randint(30, 50)
@@ -546,25 +551,22 @@ class Enemy2(EnemyBase):
             self.rect.y += self.vector.y
             self.check_vertical_collisions(tiles)
 
-        # # update enemy vision
-        # self.vision_rect.center = self.rect.center
-        # # if enemy "sees" the player
-        # if self.vision_rect.colliderect(player_rect):
-        #     self.idling = False
-        #     # change enemy direction to go after the player
-        #     if player_rect.x < self.rect.x - 5:
-        #             # VECTOR CHANGE HERE
-        #             pass
-        #     elif player_rect.x > self.rect.x + 5:
-        #             # VECTOR CHANGE HERE
-        #             pass
-        #     else:
-        #         # VECTOR CHANGE HERE
-        #         pass
-        # elif self.vector.x == 0:
-        #     # VECTOR CHANGE HERE?
-        #     pass
-
+        # update enemy vision
+        self.vision_rect.center = self.rect.center
+        # if enemy "sees" the player
+        if self.vision_rect.colliderect(player_rect):
+            self.idling = False
+            self.spotted_player = True
+            self.move_count = 10
+            # change enemy direction to go after the player
+            x_distance = player_rect.centerx - self.rect.centerx
+            y_distance = player_rect.centery - self.rect.centery - 24
+            angle = atan2(y_distance, x_distance)
+            self.vector.x = round(self.speed * cos(angle))
+            self.vector.y = round(self.speed * sin(angle))
+        else:
+            self.spotted_player = False
+            
         # blinking if damaged
         if self.blinking:
             self.blinking -= 1

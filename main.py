@@ -28,7 +28,7 @@ fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
 def pause_menu():
     # convert pygame surface to pillow image and blur it
     str_surf = tostring(screen.copy(), "RGB", False)
-    blurred = frombytes("RGB", SCREEN_SIZE, str_surf).filter(GaussianBlur(3))
+    blurred = frombytes("RGB", SCREEN_SIZE, str_surf).filter(GaussianBlur(5))
     # convert pillow image to pygame surface
     str_surf = blurred.tobytes("raw", "RGB")
     blurred = fromstring(str_surf, SCREEN_SIZE, "RGB")

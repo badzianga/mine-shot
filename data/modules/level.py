@@ -10,11 +10,11 @@ from pygame.surface import Surface
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import (BLACK, BROWN, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE,
+from .constants import (CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE,
                         WHITE)
-from .entities import Bat, Player, Slime, Spider
+from .entities import Player, Spider
 from .functions import load_images
-from .tiles import AnimatedTile, Lava, Tile, Torch
+from .tiles import Tile, Torch
 
 
 class Level:
@@ -29,6 +29,7 @@ class Level:
         self.enemies = Group()
         self.texts = Group()
         self.gold_group = Group()
+        self.entrances = Group()
 
         # scrolling
         self.true_scroll = [0, 0]
@@ -69,13 +70,13 @@ class Level:
         stone_img = scale2x(scale2x(load_image("data/img/stone.png").convert()))
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
-        platform_img = Surface((TILE_SIZE, TILE_SIZE // 8))
-        platform_img.fill(BROWN)
+        platform_img = scale2x(scale2x(load_image("data/img/platform.png").convert_alpha()))
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
+        entrance_img = load_image("data/img/entrance.png").convert_alpha()
 
         # load map
-        map_data = loadtxt("data/maps/test_map/base.csv", dtype=int8, delimiter=',')
+        map_data = loadtxt("levels/level_0.csv", dtype=int8, delimiter=',')
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8
@@ -108,19 +109,26 @@ class Level:
                             self.game_map[current_chunk]["collidable"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
                         else:
                             self.game_map[current_chunk]["tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
-                # create player
+                # create ladders
                 elif cell == 2:
-                    self.player = Player((x * TILE_SIZE, y * TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
-                    self.true_scroll = [self.player.rect.x, self.player.rect.y]
-                    self.scroll = [self.player.rect.x, self.player.rect.y]
+                    self.game_map[current_chunk]["ladders"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
                 # create platforms
                 elif cell == 3:
                     self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
-                # create ladders
+                # create player
                 elif cell == 4:
-                    self.game_map[current_chunk]["ladders"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
-                # create torches
+                    self.player = Player((x * TILE_SIZE, y * TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
+                    # center scroll to the player
+                    self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)
+                    self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328)
+                    self.scroll[0] = int(self.true_scroll[0])
+                    self.scroll[1] = int(self.true_scroll[1])
+                # create entrances
                 elif cell == 5:
+                    image_rect = entrance_img.get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
+                    self.entrances.add(Tile((image_rect.x, image_rect.y), entrance_img))
+                # create torches
+                elif cell == 6:
                     self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
                 # create enemies
                 elif cell == 9:
@@ -138,9 +146,20 @@ class Level:
         # first, calculate true scroll values (floats, center of the player)
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618) / 25
         self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328) / 25
+
         # then. convert them to integers
         self.scroll[0] = int(self.true_scroll[0])
         self.scroll[1] = int(self.true_scroll[1])
+
+        # max scrolls
+        if self.scroll[0] < 100:
+            self.scroll[0] = 100
+        elif self.scroll[0] > 1190:
+            self.scroll[0] = 1190
+        if self.scroll[1] < 100:
+            self.scroll[1] = 100
+        elif self.scroll[1] > 704:
+            self.scroll[1] = 704
 
     def run(self):
         # look up and down
@@ -192,6 +211,10 @@ class Level:
         # draw tiles
         for tile in set.union(objects["tiles"], objects["collidable"]):
             tile.draw(self.screen, self.scroll)
+
+        # draw entrances
+        for entrance in self.entrances:
+            entrance.draw(self.screen, self.scroll)
 
         # draw decorations
         for decoration in objects["decorations"]:
@@ -255,7 +278,7 @@ class Level:
         if self.darkness:
             # create darkness surface
             darkness = Surface(SCREEN_SIZE)
-            darkness.fill(BLACK)
+            darkness.fill((32, 32, 32))
             # player light
             darkness.blit(self.player_light, self.player_light.get_rect(center=(self.player.rect.centerx - self.scroll[0], self.player.rect.centery - self.scroll[1])))
             # torch lights

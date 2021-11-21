@@ -9,6 +9,9 @@ from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
 from data.modules.classes import Menu, PauseMenu
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
 from data.modules.level import Level
+from PIL.Image import frombytes
+from PIL.ImageFilter import GaussianBlur
+from pygame.image import tostring, fromstring
 
 # Init ---------------------------------------------------------------------- #
 pygame.init()
@@ -23,9 +26,17 @@ fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
 
 # Pause menu loop ----------------------------------------------------------- #
 def pause_menu():
+    # convert pygame surface to pillow image and blur it
+    str_surf = tostring(screen.copy(), "RGB", False)
+    blurred = frombytes("RGB", SCREEN_SIZE, str_surf).filter(GaussianBlur(3))
+    # convert pillow image to pygame surface
+    str_surf = blurred.tobytes("raw", "RGB")
+    blurred = fromstring(str_surf, SCREEN_SIZE, "RGB")
+
     menu = PauseMenu()
 
     while True:
+        screen.blit(blurred, (0, 0))
         # draw pause menu (smaller rect, without clearing screen)
         menu.draw(screen)
 

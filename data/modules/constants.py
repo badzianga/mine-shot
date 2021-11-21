@@ -9,6 +9,7 @@ GRAVITY = 0.8
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 BROWN = (108, 36, 0)
+DARK_GRAY = (32, 32, 32)
 GOLD = (255, 215, 0)
 GRAY = (128, 128, 128)
 GREEN = (0, 255, 0)

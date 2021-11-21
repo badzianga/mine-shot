@@ -1,4 +1,3 @@
-from json import load as load_json
 from random import randint
 
 from numpy import int8, loadtxt
@@ -11,7 +10,7 @@ from pygame.surface import Surface
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import (BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE,
+from .constants import (BLACK, BROWN, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE,
                         WHITE)
 from .entities import Bat, Player, Slime, Spider
 from .functions import load_images

@@ -6,7 +6,7 @@ from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
                            K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c,
                            K_x, K_z)
 
-from data.modules.classes import Menu
+from data.modules.classes import Menu, PauseMenu
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
 from data.modules.level import Level
 
@@ -21,6 +21,46 @@ clock = pygame.time.Clock()
 fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
 
 
+# Pause menu loop ----------------------------------------------------------- #
+def pause_menu():
+    menu = PauseMenu()
+
+    while True:
+        # draw pause menu (smaller rect, without clearing screen)
+        menu.draw(screen)
+
+        # check events
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == KEYDOWN:
+                # unpause game
+                if event.key == K_ESCAPE:
+                    return True
+                # select highlighted option in menu
+                if event.key in (K_SPACE, K_z):
+                    # unpause game
+                    if menu.highlighted == 0:
+                        return True
+                    # return to main menu
+                    elif menu.highlighted == 1:
+                        return False
+                # move highlight up
+                if event.key == K_UP:
+                    menu.key_up = True
+                # move highlight down
+                if event.key == K_DOWN:
+                    menu.key_down = True
+
+        # update menu (change highlight)
+        menu.update()
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+
 # Game loop ----------------------------------------------------------------- #
 def game_loop():
     level = Level(screen)
@@ -28,7 +68,8 @@ def game_loop():
     fps = FPS
     toggle_fps = False
 
-    while True:
+    looping = True
+    while looping:
         # clear screen
         screen.fill(BLACK)
 
@@ -46,9 +87,16 @@ def game_loop():
                 exit()
 
             if event.type == KEYDOWN:
-                # return to main menu
+                # pause game
                 if event.key == K_ESCAPE:
-                    return
+                    looping = pause_menu()
+                    # reset keys
+                    level.player.left = False
+                    level.player.right = False
+                    level.player.up = False
+                    level.player.down = False
+                    level.key_up = False
+                    level.key_down = False
                 # move player left
                 if event.key == K_LEFT:
                     level.player.left = True

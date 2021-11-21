@@ -1,4 +1,4 @@
-from math import cos, radians, sin, atan2, degrees
+from math import cos, radians, sin, atan2, floor
 from random import choice, randint
 
 from pygame.image import load
@@ -15,7 +15,7 @@ from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple):
+    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group):
         super().__init__()
 
         # image - temporarily just a single-color surface
@@ -56,7 +56,13 @@ class Player(Sprite):
 
         self.gold = 0
 
-    def get_damage(self, damage: int, texts: Group):
+        # external groups
+        self.enemies = enemies
+        self.gold_group = gold_group
+        self.bullet_group = bullet_group
+        self.texts = texts
+
+    def get_damage(self, damage: int):
         self.health -= damage
         if self.debuffs["burning"] > 0:
             color = ORANGE
@@ -64,38 +70,42 @@ class Player(Sprite):
             color = GREEN
         else:
             color = RED
-        texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), color))
+        self.texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), color))
         self.invincible = True
 
-    def shoot(self, bullet_group: Group):
+    def shoot(self):
         if self.shoot_cooldown <= 0:
             self.shoot_cooldown = 45
             if self.up:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -55, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -60, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -65, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -55, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -60, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -65, self.damage, self.bullet_img))
             elif self.down:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 55, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 60, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 65, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 55, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 60, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 65, self.damage, self.bullet_img))
             else:
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 5, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 0, self.damage, self.bullet_img))
-                bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -5, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 5, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 0, self.damage, self.bullet_img))
+                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -5, self.damage, self.bullet_img))
 
-    def burst(self, bullet_group: Group):
+    def burst(self):
         if self.shoot_cooldown <= 0 and self.mana >= 40:
             self.mana -= 40
             self.shoot_cooldown = 60
             if self.up:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-100, -80), self.damage, self.bullet_img))
+                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-100, -80), self.damage, self.bullet_img))
             elif self.down:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(80, 100), self.damage, self.bullet_img))
+                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(80, 100), self.damage, self.bullet_img))
+                if self.vector.y < 0:
+                    self.vector.y = self.vector.y * 2.25
+                else:
+                    self.vector.y = -13
             else:
                 for _ in range(8):
-                    bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-10, 10), self.damage, self.bullet_img))
+                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-10, 10), self.damage, self.bullet_img))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -177,7 +187,7 @@ class Player(Sprite):
 
                     break
 
-    def check_lava_collisions(self, lava_tiles: set, texts: Group):
+    def check_lava_collisions(self, lava_tiles: set):
         for lava_tile in lava_tiles:
             if self.rect.colliderect(lava_tile.rect):
                 # slow player while in lava, allow to "swim" (jmup)
@@ -188,7 +198,7 @@ class Player(Sprite):
 
                 if not self.invincible:
                     # recieve damage from lava
-                    self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]), texts)
+                    self.get_damage(randint(lava_tile.damage[0], lava_tile.damage[1]))
                     # apply debuff
                     self.debuffs["burning"] = 3
 
@@ -198,38 +208,38 @@ class Player(Sprite):
         self.speed = 8
         self.jump_speed = -18
 
-    def check_enemy_collisions(self, enemies: Group, texts: Group):
-        for enemy in enemies:
+    def check_enemy_collisions(self):
+        for enemy in self.enemies:
             if self.rect.colliderect(enemy.rect):
                 damage = randint(enemy.damage[0], enemy.damage[1])
-                self.get_damage(damage, texts)
+                self.get_damage(damage)
                 break
 
-    def check_coins_collisions(self, gold_group: Group, texts: Group):
-        for gold in gold_group:
+    def check_coins_collisions(self):
+        for gold in self.gold_group:
             if self.rect.colliderect(gold.rect):
                 self.gold += gold.amount
-                texts.add(DamageText(self.rect.midtop, f"{gold.amount}$", GOLD))
+                self.texts.add(DamageText(self.rect.midtop, f"{gold.amount}$", GOLD))
                 gold.kill()
 
     def draw(self, screen: Surface, scroll: set):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list, objects: dict, enemies: Group, texts: Group, gold_group: Group):
+    def update(self, screen: Surface, scroll: list, objects: dict):
         # update x position and check for horizontal collisions
         self.rect.x += self.vector.x
-        self.check_horizontal_collisions(objects["tiles"])
+        self.check_horizontal_collisions(objects["collidable"])
         
         # update y position and check for verical collisions
         self.vector.y += GRAVITY
         self.rect.y += self.vector.y
-        self.check_vertical_collisions(objects["tiles"])
+        self.check_vertical_collisions(objects["collidable"])
 
         # check for collisions with other objects (except enemies)
         self.check_ladder_collisions(objects["ladders"])
         self.check_platform_collisions(objects["platforms"])
-        self.check_lava_collisions(objects["lava"], texts)
-        self.check_coins_collisions(gold_group, texts)
+        self.check_lava_collisions(objects["lava"])
+        self.check_coins_collisions()
 
         # update shoot cooldown
         if self.shoot_cooldown > 0:
@@ -265,10 +275,10 @@ class Player(Sprite):
 
         # check for collisions with enemies
         if not self.invincible:
-            self.check_enemy_collisions(enemies, texts)
+            self.check_enemy_collisions()
             # get damage from debuffs
             if self.debuffs["burning"] > 0:
-                self.get_damage(2, texts)
+                self.get_damage(2)
                 self.debuffs["burning"] -= 1
 
         # update invincivbility
@@ -292,7 +302,7 @@ class Player(Sprite):
 
 
 class EnemyBase(Sprite):
-    def __init__(self, position, hp, damage, speed, gold, gold_group):
+    def __init__(self, position, hp, damage, speed, gold, gold_group: Group):
         super().__init__()
 
         self.gold_group = gold_group
@@ -303,19 +313,19 @@ class EnemyBase(Sprite):
         self.rect = self.image.get_rect(topleft=(position[0], position[1]))
 
         # health, damage, speed and gold amount from config file
-        if isinstance(hp, list):
+        if isinstance(hp, tuple):
             self.health = randint(hp[0], hp[1])
         else:
             self.health = hp
 
         self.damage = tuple(damage)
 
-        if isinstance(speed, list):
+        if isinstance(speed, tuple):
             self.speed = randint(speed[0], speed[1])
         else:
             self.speed = speed
 
-        if isinstance(gold, list):
+        if isinstance(gold, tuple):
             self.gold_amount = randint(gold[0], gold[1])
         else:
             self.gold_amount = gold
@@ -363,9 +373,9 @@ class EnemyBase(Sprite):
                 break
 
 
-class Enemy0(EnemyBase):
-    def __init__(self, position: tuple, hp, damage, speed, gold, gold_group):
-        super().__init__(position, hp, damage, speed, gold, gold_group)
+class Slime(EnemyBase):
+    def __init__(self, position: tuple, gold_group: Group):
+        super().__init__(position, 10, (1, 3), (1, 3), (0, 2), gold_group)
         self.image.fill(GREEN)
 
         self.vector.x = self.speed * choice((-1, 1))
@@ -410,19 +420,31 @@ class Enemy0(EnemyBase):
         self.draw(screen, scroll)
 
 
-class Enemy1(EnemyBase):
-    def __init__(self, position: tuple, hp, damage, speed, gold, gold_group):
-        super().__init__(position, hp, damage, speed, gold, gold_group)
-        self.image = Surface((32, 32))
-        self.image.fill(BLACK)
+class Spider(EnemyBase):
+    def __init__(self, position: tuple, images: tuple, gold_group: Group):
+        super().__init__(position, 6, (1, 2), (5, 6), (0, 2), gold_group)
+
+        self.animations = {"idle": images[0], "run": images[1]}
+        self.frame_index = 0
+        self.action = "idle"
+        self.cooldowns = {"idle": 0.2, "run": 0.4}
+        self.image = self.animations[self.action][self.frame_index]
+
+        self.vector.x = self.speed * choice((-1, 1))
+
         self.rect = self.image.get_rect(topleft=position)
-        self.vision_rect = Rect(0, 0, 640, 240)
+
+    def update_action(self, new_action):
+        if new_action != self.action:
+            self.action = new_action
+            self.frame_index = 0
 
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
         if not self.idling:
             # random idle
             if randint(1, 50) == 1:
                 self.idling = True
+                self.update_action("idle")
                 self.idling_counter = randint(30, 70)
                 
             # update x position and check for horizontal collisions
@@ -433,6 +455,74 @@ class Enemy1(EnemyBase):
             # after idle - stop idling, randomly select direction of moving
             if self.idling_counter <= 0:
                 self.idling = False
+                self.update_action("run")
+                self.vector.x *= choice((-1, 1))
+
+        # update y position and check collisions with tiles
+        self.vector.y += GRAVITY
+        self.rect.y += self.vector.y
+        self.check_vertical_collisions(set.union(tiles, platforms))
+
+        # set max falling spedd - temp fix for bug with platform collision
+        if self.vector.y > 18:
+            self.vector.y = 18
+
+        # update animation frame
+        self.frame_index += self.cooldowns[self.action]
+        if self.frame_index >= len(self.animations[self.action]):
+            self.frame_index = 0
+        # set new frame to the image and flip it if necessary
+        self.image = self.animations[self.action][floor(self.frame_index)]
+
+        # blinking if damaged
+        if self.blinking:
+            self.blinking -= 1
+            if sin(get_ticks()) >= 0:
+                self.image.set_alpha(255)
+            else:
+                self.image.set_alpha(63)
+        else:
+            self.image.set_alpha(255)
+
+        # draw enemy on the screen
+        self.draw(screen, scroll)
+
+
+class SpiderAdvanced(EnemyBase):
+    def __init__(self, position: tuple, images: tuple, gold_group: Group):
+        super().__init__(position, 6, (1, 2), (5, 6), (0, 2), gold_group)
+
+        self.animations = {"idle": images[0], "run": images[1]}
+        self.frame_index = 0
+        self.action = "idle"
+        self.cooldowns = {"idle": 0.2, "run": 0.4}
+        self.image = self.animations[self.action][self.frame_index]
+
+        self.rect = self.image.get_rect(topleft=position)
+        self.vision_rect = Rect(0, 0, 640, 240)
+
+    def update_action(self, new_action):
+        if new_action != self.action:
+            self.action = new_action
+            self.frame_index = 0
+
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+        if not self.idling:
+            # random idle
+            if randint(1, 50) == 1:
+                self.idling = True
+                self.update_action("idle")
+                self.idling_counter = randint(30, 70)
+                
+            # update x position and check for horizontal collisions
+            self.rect.x += self.vector.x
+            self.check_horizontal_collisions(tiles)
+        else:
+            self.idling_counter -= 1
+            # after idle - stop idling, randomly select direction of moving
+            if self.idling_counter <= 0:
+                self.idling = False
+                self.update_action("run")
                 self.vector.x *= choice((-1, 1))
 
         # update y position and check collisions with tiles
@@ -449,6 +539,7 @@ class Enemy1(EnemyBase):
         # if enemy "sees" the player
         if self.vision_rect.colliderect(player_rect):
             self.idling = False
+            self.update_action("run")
             # change enemy direction to go after the player
             if player_rect.x < self.rect.x - 5:
                     self.vector.x = -self.speed
@@ -460,6 +551,13 @@ class Enemy1(EnemyBase):
             self.vector.x = self.speed * choice((-1, 1))
         # TEMP: enemy vision
         # draw_rect(screen, GOLD, (self.vision_rect.left - scroll[0], self.vision_rect.top - scroll[1], self.vision_rect.width, self.vision_rect.height))
+
+        # update animation frame
+        self.frame_index += self.cooldowns[self.action]
+        if self.frame_index >= len(self.animations[self.action]):
+            self.frame_index = 0
+        # set new frame to the image and flip it if necessary
+        self.image = self.animations[self.action][floor(self.frame_index)]
 
         # blinking if damaged
         if self.blinking:
@@ -475,9 +573,9 @@ class Enemy1(EnemyBase):
         self.draw(screen, scroll)
 
 
-class Enemy2(EnemyBase):
-    def __init__(self, position: tuple, hp, damage, speed, gold, gold_group):
-        super().__init__(position, hp, damage, speed, gold, gold_group)
+class Bat(EnemyBase):
+    def __init__(self, position: tuple, gold_group: Group):
+        super().__init__(position, 10, (1, 3), (4, 6), (0, 4), gold_group)
 
         self.image = Surface((48, 48))
         self.image.fill(BLACK)

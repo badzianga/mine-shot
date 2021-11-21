@@ -67,9 +67,9 @@ def game_loop():
                     level.key_down = True
                     level.player.down = True
                 if event.key == K_x:
-                    level.player.shoot(level.bullet_group)
+                    level.player.shoot()
                 if event.key == K_c:
-                    level.player.burst(level.bullet_group)
+                    level.player.burst()
                 # show/hide fps
                 if event.key == K_F12:
                     toggle_fps = not toggle_fps

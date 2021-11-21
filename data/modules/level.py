@@ -1,17 +1,19 @@
-from random import randint
-from pygame.font import Font
 from json import load as load_json
+from random import randint
 
+from numpy import int8, loadtxt
+from pygame.font import Font
 from pygame.image import load as load_image
+from pygame.locals import BLEND_RGBA_MULT
 from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
 from pygame.transform import scale2x
-from pygame.locals import BLEND_RGBA_MULT
 
 from .classes import HealthBar, ManaBar
-from .constants import BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE, WHITE
-from .entities import Enemy0, Enemy1, Enemy2, Player
+from .constants import (BLACK, BROWN, CHUNK_SIZE, MAP, SCREEN_SIZE, TILE_SIZE,
+                        WHITE)
+from .entities import Bat, Player, Slime, Spider
 from .functions import load_images
 from .tiles import AnimatedTile, Lava, Tile, Torch
 
@@ -51,7 +53,7 @@ class Level:
         self.screen_shake = 0
 
         # darkness
-        self.darkness = False
+        self.darkness = True
         self.player_light = load_image("data/img/lights/player_light.png").convert_alpha()
         self.torch_light = load_image("data/img/lights/torch_light.png").convert_alpha()
         self.torch_particle_light = load_image("data/img/lights/torch_particle_light.png").convert_alpha()
@@ -64,70 +66,68 @@ class Level:
                                   )
 
     def load_level(self):
-        # images 
+        # images
         stone_img = scale2x(scale2x(load_image("data/img/stone.png").convert()))
+        bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = Surface((TILE_SIZE, TILE_SIZE // 8))
         platform_img.fill(BROWN)
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
-        lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
-        spider_imgs = load_images("data/img/spider", "Spider_", 1, 1)
-        bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
-        decoration_imgs = load_images("data/img/decorations", "Deco_", 1, 1)
+        spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
 
-        # enemies data (their stats)
-        with open("data/json/enemies.json", "r") as json_file:
-            enemies_data = load_json(json_file)
+        # load map
+        map_data = loadtxt("data/maps/test_map/base.csv", dtype=int8, delimiter=',')
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8
-        for y in range(len(MAP) // CHUNK_SIZE):
-            for x in range(len(MAP[0]) // CHUNK_SIZE):
+        for y in range(len(map_data) // CHUNK_SIZE):
+            for x in range(len(map_data[0]) // CHUNK_SIZE):
                 self.game_map[f"{x};{y}"] = {"tiles": set(), "ladders": set(), "platforms": set(),
                                              "torches": set(), "lava": set(), "animated_tiles": set(),
-                                             "bg_tiles": set(), "decorations": set()}
+                                             "bg_tiles": set(), "decorations": set(), "collidable": set()}
 
         # load level data from tuple
-        for y, row in enumerate(MAP):
+        for y, row in enumerate(map_data):
             current_chunk_y = y // CHUNK_SIZE
             for x, cell in enumerate(row):
                 current_chunk_x = x // CHUNK_SIZE
                 current_chunk = f"{current_chunk_x};{current_chunk_y}"  # calculate coordinates of chunk
 
                 # create stone tiles and add them to chunks
-                if cell == "X":
-                    self.game_map[current_chunk]["tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
-                # create ladders and add them to chunks
-                elif cell == "L":
-                    self.game_map[current_chunk]["ladders"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
-                # create platforms and add them to chunks
-                elif cell == "_":
-                    self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
-                # create torches and add them to chunks
-                elif cell == "T":
-                    self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
-                # create lava and add it to chunks
-                elif cell == "~":
-                    self.game_map[current_chunk]["lava"].add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
-                # create animated tiles (spiders) and add them to chunks
-                elif cell == "S":
-                    self.game_map[current_chunk]["animated_tiles"].add(AnimatedTile((x * TILE_SIZE, y * TILE_SIZE), spider_imgs, 0.1))
-                elif cell.isdigit():
-                    self.game_map[current_chunk]["decorations"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), decoration_imgs[int(cell) - 1]))
+                if cell == 1:
+                    if y > 0 and x > 0 and y < len(map_data) - 1 and x < len(map_data[0]) - 1:
+                        collidable = False
+                        for i in range(-1, 2):
+                            for j in range(-1, 2):
+                                if i == 0 and j == 0:
+                                    pass
+                                else:
+                                    if map_data[y + i][x + j] != 1:
+                                        collidable = True
+                                        break
+                        if collidable:
+                            self.game_map[current_chunk]["collidable"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
+                        else:
+                            self.game_map[current_chunk]["tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), stone_img))
                 # create player
-                elif cell == "P":
-                    self.player = Player((x * TILE_SIZE, y * TILE_SIZE))
+                elif cell == 2:
+                    self.player = Player((x * TILE_SIZE, y * TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
                     self.true_scroll = [self.player.rect.x, self.player.rect.y]
                     self.scroll = [self.player.rect.x, self.player.rect.y]
+                # create platforms
+                elif cell == 3:
+                    self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
+                # create ladders
+                elif cell == 4:
+                    self.game_map[current_chunk]["ladders"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
+                # create torches
+                elif cell == 5:
+                    self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
                 # create enemies
-                elif cell == "s":
-                    self.enemies.add(Enemy0((x * TILE_SIZE, y * TILE_SIZE), enemies_data["slime"]["hp"], enemies_data["slime"]["damage"], enemies_data["slime"]["speed"], enemies_data["slime"]["gold"], self.gold_group))
-                elif cell == "n":
-                    self.enemies.add(Enemy1((x * TILE_SIZE, y * TILE_SIZE), enemies_data["spider"]["hp"], enemies_data["spider"]["damage"], enemies_data["spider"]["speed"], enemies_data["spider"]["gold"], self.gold_group))
-                elif cell == "b":
-                    self.enemies.add(Enemy2((x * TILE_SIZE, y * TILE_SIZE), enemies_data["bat"]["hp"], enemies_data["bat"]["damage"], enemies_data["bat"]["speed"], enemies_data["bat"]["gold"], self.gold_group))
-                # create stone background tiles and add them to chunks
-                if cell != "X":
+                elif cell == 9:
+                    self.enemies.add(Spider((x * TILE_SIZE, y * TILE_SIZE), spider_imgs, self.gold_group))
+                # create background tiles
+                if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
 
     def earthquake(self):
@@ -162,12 +162,12 @@ class Level:
         # create set with objects from active chunks (all objects except player and enemies!)
         objects = {"tiles": set(), "ladders": set(), "platforms": set(),
                    "torches": set(), "lava": set(), "animated_tiles": set(),
-                   "bg_tiles": set(), "decorations": set()}
+                   "bg_tiles": set(), "decorations": set(), "collidable": set()}
 
         # iterate through every active chunk
-        for y in range(3):
+        for y in range(4):
             target_y = y - 1 + round(self.scroll[1] / (CHUNK_SIZE * TILE_SIZE))
-            for x in range(4):
+            for x in range(5):
                 target_x = x - 1 + round(self.scroll[0] / (CHUNK_SIZE * TILE_SIZE))
                 target_chunk = f"{target_x};{target_y}"  # calculate coordinates of the active chunk
                 if target_chunk in self.game_map.keys():
@@ -180,17 +180,18 @@ class Level:
                     objects["animated_tiles"] |= self.game_map[target_chunk]["animated_tiles"]
                     objects["bg_tiles"] |= self.game_map[target_chunk]["bg_tiles"]
                     objects["decorations"] |= self.game_map[target_chunk]["decorations"]
+                    objects["collidable"] |= self.game_map[target_chunk]["collidable"]
 
         # draw background tiles
-        # for tile in objects["bg_tiles"]:
-        #    tile.draw(self.screen, self.scroll)
+        for tile in objects["bg_tiles"]:
+            tile.draw(self.screen, self.scroll)
 
         # draw background
-        for speed, image in self.background_images:
-            self.screen.blit(image, (0 - self.scroll[0] * speed, 0 - self.scroll[1] * speed))
+        # for speed, image in self.background_images:
+        #     self.screen.blit(image, (0 - self.scroll[0] * speed, 0 - self.scroll[1] * speed))
 
         # draw tiles
-        for tile in objects["tiles"]:
+        for tile in set.union(objects["tiles"], objects["collidable"]):
             tile.draw(self.screen, self.scroll)
 
         # draw decorations
@@ -220,22 +221,22 @@ class Level:
         # update and draw bullets
         for bullet in self.bullet_group.copy():
             if active_rect.colliderect(bullet.rect):
-                bullet.update(self.screen, self.scroll, objects["tiles"], self.enemies, self.texts)
+                bullet.update(self.screen, self.scroll, objects["collidable"], self.enemies, self.texts)
             else:
                 bullet.kill()
 
         # draw gold
         for gold in self.gold_group:
             if active_rect.colliderect(gold.rect):
-                gold.update(self.screen, self.scroll, set.union(objects["tiles"], objects["platforms"]))
+                gold.update(self.screen, self.scroll, set.union(objects["collidable"], objects["platforms"]))
 
         # update and draw enemies
         for enemy in self.enemies:
             if active_rect.colliderect(enemy.rect):
-                enemy.update(self.screen, self.scroll, objects["tiles"], objects["platforms"], self.player.rect)
+                enemy.update(self.screen, self.scroll, objects["collidable"], objects["platforms"], self.player.rect)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, objects, self.enemies, self.texts, self.gold_group)
+        self.player.update(self.screen, self.scroll, objects)
 
         # update and draw lava
         for lava in objects["lava"]:

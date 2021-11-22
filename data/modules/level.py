@@ -1,6 +1,6 @@
 from random import randint
 
-from numpy import int8, loadtxt
+from numpy import uint8, loadtxt
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
@@ -76,7 +76,7 @@ class Level:
         entrance_img = load_image("data/img/entrance.png").convert_alpha()
 
         # load map
-        map_data = loadtxt("levels/level_0.csv", dtype=int8, delimiter=',')
+        map_data = loadtxt("data/maps/level_0.csv", dtype=uint8, delimiter=',')
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8

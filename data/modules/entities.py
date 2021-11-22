@@ -36,9 +36,10 @@ class Player(Sprite):
 
         # health stuff
         self.max_health = 20
-        self.health = 20
+        self.health = self.max_health
         self.max_mana = 100
-        self.mana = 100
+        self.mana = self.max_mana
+        self.mana_regen = 0.1
         self.invincible = False
         self.invincibility_duration = 90  # frames
         self.debuffs = {"burning": 0, "poison": 0}  # debuff name: amount of get_damage to get
@@ -246,8 +247,8 @@ class Player(Sprite):
             self.shoot_cooldown -= 1
 
         # regenerate mana
-        if self.mana < 100:
-            self.mana += 0.1
+        if self.mana < self.max_mana:
+            self.mana += self.mana_regen
 
         # move left
         if self.left:

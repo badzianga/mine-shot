@@ -1,0 +1,8 @@
+{
+    "speed": 8,
+    "jump_speed": -18,
+    "health": 20,
+    "mana": 100,
+    "mana_regen": 0.1,
+    "damage_modifier": 0
+}

@@ -4,6 +4,7 @@ from pygame.sprite import Sprite
 from pygame.surface import Surface
 
 from .particles import TorchParticle
+from .constants import TILE_SIZE
 
 
 class Tile(Sprite):
@@ -15,6 +16,14 @@ class Tile(Sprite):
 
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
+
+
+class Door(Tile):
+    def __init__(self, position: tuple, image: Surface, tile_pos: tuple, allowed: bool):
+        super().__init__(position, image)
+
+        self.tile_pos = tile_pos
+        self.allowed = allowed
 
 
 class AnimatedTile(Tile):

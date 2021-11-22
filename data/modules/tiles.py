@@ -4,7 +4,6 @@ from pygame.sprite import Sprite
 from pygame.surface import Surface
 
 from .particles import TorchParticle
-from .constants import TILE_SIZE
 
 
 class Tile(Sprite):
@@ -19,10 +18,10 @@ class Tile(Sprite):
 
 
 class Door(Tile):
-    def __init__(self, position: tuple, image: Surface, tile_pos: tuple, allowed: bool):
+    def __init__(self, position: tuple, image: Surface, leads_to: str, allowed: bool):
         super().__init__(position, image)
 
-        self.tile_pos = tile_pos
+        self.leads_to = leads_to
         self.allowed = allowed
 
 

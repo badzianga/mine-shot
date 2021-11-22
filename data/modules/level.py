@@ -1,4 +1,5 @@
 from random import randint
+from json import load as load_json
 
 from numpy import uint8, loadtxt
 from pygame.font import Font
@@ -14,7 +15,7 @@ from .constants import (CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE,
                         WHITE)
 from .entities import Player, Spider
 from .functions import load_images
-from .tiles import Tile, Torch
+from .tiles import Door, Tile, Torch
 
 
 class Level:
@@ -29,7 +30,10 @@ class Level:
         self.enemies = Group()
         self.texts = Group()
         self.gold_group = Group()
-        self.entrances = Group()
+        self.doors = Group()
+
+        self.current_level = "level_0"  # entrance level
+        self.last_door_position = None
 
         # scrolling
         self.true_scroll = [0, 0]
@@ -59,11 +63,12 @@ class Level:
         self.torch_particle_light = load_image("data/img/lights/torch_particle_light.png").convert_alpha()
         self.bullet_light = load_image("data/img/lights/bullet_light.png").convert_alpha()
 
-        self.background_images = ((0, scale2x(load_image("data/img/background/background1.png").convert_alpha())),
-                                  (0.05, scale2x(load_image("data/img/background/background2.png").convert_alpha())),
-                                  (0.1, scale2x(load_image("data/img/background/background3.png").convert_alpha())),
-                                  (0.15, scale2x(load_image("data/img/background/background4.png").convert_alpha()))
-                                  )
+        # parallax background
+        # self.background_images = ((0, scale2x(load_image("data/img/background/background1.png").convert_alpha())),
+        #                           (0.05, scale2x(load_image("data/img/background/background2.png").convert_alpha())),
+        #                           (0.1, scale2x(load_image("data/img/background/background3.png").convert_alpha())),
+        #                           (0.15, scale2x(load_image("data/img/background/background4.png").convert_alpha()))
+        #                           )
 
     def load_level(self):
         # images
@@ -73,10 +78,14 @@ class Level:
         platform_img = scale2x(scale2x(load_image("data/img/platform.png").convert_alpha()))
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
-        entrance_img = load_image("data/img/entrance.png").convert_alpha()
+        cave_door_img = load_image("data/img/cave_door.png").convert_alpha()
+
+        # load doors data
+        with open("data/maps/entrances_data.json", "r") as f:
+            doors_data = load_json(f)
 
         # load map
-        map_data = loadtxt("data/maps/level_0.csv", dtype=uint8, delimiter=',')
+        map_data = loadtxt(f"data/maps/{self.current_level}.csv", dtype=uint8, delimiter=',')
 
         # create empty chunks structure
         # length and width of map must be a multiple of 8
@@ -115,20 +124,14 @@ class Level:
                 # create platforms
                 elif cell == 3:
                     self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
-                # create player
+                # create doors
                 elif cell == 4:
-                    self.player = Player((x * TILE_SIZE, y * TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
-                    # center scroll to the player
-                    self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)
-                    self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328)
-                    self.scroll[0] = int(self.true_scroll[0])
-                    self.scroll[1] = int(self.true_scroll[1])
-                # create entrances
-                elif cell == 5:
-                    image_rect = entrance_img.get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
-                    self.entrances.add(Tile((image_rect.x, image_rect.y), entrance_img))
+                    # set fixed door (entrance, shop, highscores)
+                    if self.current_level in doors_data.keys():
+                        image_rect = cave_door_img.get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
+                        self.doors.add(Door((image_rect.x, image_rect.y), cave_door_img, doors_data[self.current_level][f"{x};{y}"], True))
                 # create torches
-                elif cell == 6:
+                elif cell == 5:
                     self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
                 # create enemies
                 elif cell == 9:
@@ -136,6 +139,21 @@ class Level:
                 # create background tiles
                 if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
+
+        # create player and set position
+        if len(self.doors) == 1:  # shop/highscores
+            door_pos = self.doors.sprites()[0].rect
+            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts)
+        elif self.last_door_position is not None:  # last door in entrance map
+            self.player = Player(self.last_door_position, self.enemies, self.gold_group, self.bullet_group, self.texts)
+        else:  # first time in entrance map (fixed position, temporary)
+            self.player = Player((736, 1096), self.enemies, self.gold_group, self.bullet_group, self.texts)
+        # center scroll to the player
+        self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)
+        self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328)
+        self.scroll[0] = int(self.true_scroll[0])
+        self.scroll[1] = int(self.true_scroll[1])
+            
 
     def earthquake(self):
         self.screen_shake -= 1
@@ -160,6 +178,26 @@ class Level:
             self.scroll[1] = 100
         elif self.scroll[1] > 704:
             self.scroll[1] = 704
+
+    def restart_level(self):
+        # reset all containers
+        self.player = None
+        self.game_map.clear()
+        self.torch_particles.clear()
+        self.bullet_group.empty()
+        self.enemies.empty()
+        self.texts.empty()
+        self.gold_group.empty()
+        self.doors.empty()
+        # reset scroll values
+        self.true_scroll[0] = 0
+        self.true_scroll[1] = 0
+        self.scroll[0] = 0
+        self.scroll[1] = 0
+        self.screen_shake = 0
+        # restart keys
+        self.key_up = False
+        self.key_down = False
 
     def run(self):
         # look up and down
@@ -212,9 +250,9 @@ class Level:
         for tile in set.union(objects["tiles"], objects["collidable"]):
             tile.draw(self.screen, self.scroll)
 
-        # draw entrances
-        for entrance in self.entrances:
-            entrance.draw(self.screen, self.scroll)
+        # draw doors
+        for door in self.doors:
+            door.draw(self.screen, self.scroll)
 
         # draw decorations
         for decoration in objects["decorations"]:
@@ -298,3 +336,14 @@ class Level:
         self.mana_bar.draw(self.screen, self.player.mana, self.player.max_mana)
         gold_amount = self.font.render(f"$: {self.player.gold}", False, WHITE)
         self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 181, 78))
+
+        # check level changes
+        for door in self.doors:
+            if self.player.rect.colliderect(door.rect) and self.key_up:
+                if door.leads_to != "exit":
+                    if self.current_level == "level_0":
+                        self.last_door_position = door.rect.midbottom
+                    self.current_level = door.leads_to
+
+                    self.restart_level()
+                    self.load_level()

@@ -25,7 +25,7 @@ class Player(Sprite):
         self.bullet_img = load("data/img/bullet.png").convert_alpha()
 
         # collision rect
-        self.rect = self.image.get_rect(topleft=position)
+        self.rect = self.image.get_rect(midbottom=position)
 
         # movement stuff
         self.speed = 8

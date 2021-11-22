@@ -135,7 +135,7 @@ def game_loop():
                 # lock/unlock max fps
                 if event.key == K_F11:
                     if fps == FPS:
-                        fps = 10000
+                        fps = 1
                     else:
                         fps = FPS
                 # toggle darkness effect

@@ -1,18 +1,19 @@
-from random import randint
 from json import load as load_json
+from random import randint
 
-from numpy import uint8, loadtxt
+from numpy import loadtxt, uint8
+from pygame.display import update as update_display
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
 from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
+from pygame.time import delay
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import (CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE,
-                        WHITE)
+from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Player, Spider
 from .functions import load_images
 from .tiles import Door, Tile, Torch
@@ -153,7 +154,6 @@ class Level:
         self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328)
         self.scroll[0] = int(self.true_scroll[0])
         self.scroll[1] = int(self.true_scroll[1])
-            
 
     def earthquake(self):
         self.screen_shake -= 1
@@ -198,6 +198,20 @@ class Level:
         # restart keys
         self.key_up = False
         self.key_down = False
+
+    def screen_fade(self, fading: bool):
+        screen_copy = self.screen.copy()
+        fade_surface = Surface(SCREEN_SIZE)
+        fade_surface.fill(BLACK)
+        if fading:
+            alphas = range(0, 255, 8)
+        else:
+            alphas = range(255, -1, -8)
+        for alpha in alphas:
+            fade_surface.set_alpha(alpha)
+            self.screen.blit(screen_copy, (0, 0))
+            self.screen.blit(fade_surface, (0, 0))
+            update_display()
 
     def run(self):
         # look up and down
@@ -340,10 +354,12 @@ class Level:
         # check level changes
         for door in self.doors:
             if self.player.rect.colliderect(door.rect) and self.key_up:
-                if door.leads_to != "exit":
+                if door.leads_to != "exit" and door.leads_to != "level_1":
                     if self.current_level == "level_0":
                         self.last_door_position = door.rect.midbottom
                     self.current_level = door.leads_to
-
+                    self.screen_fade(True)
                     self.restart_level()
                     self.load_level()
+                    self.run()
+                    self.screen_fade(False)

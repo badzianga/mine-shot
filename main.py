@@ -1,27 +1,61 @@
 # Imports ------------------------------------------------------------------- #
 from sys import exit
 
-import pygame
+from PIL.Image import frombytes
+from PIL.ImageFilter import GaussianBlur
+from pygame import init, quit
+from pygame.display import set_caption, set_mode
+from pygame.display import update as update_display
+from pygame.event import get as get_events
+from pygame.font import Font
+from pygame.image import fromstring, tostring
 from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
                            K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c,
                            K_x, K_z)
+from pygame.time import Clock
 
-from data.modules.classes import Menu, PauseMenu
-from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE
+from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE, WHITE
 from data.modules.level import Level
-from PIL.Image import frombytes
-from PIL.ImageFilter import GaussianBlur
-from pygame.image import tostring, fromstring
+from data.modules.menus import Menu, PauseMenu
 
 # Init ---------------------------------------------------------------------- #
-pygame.init()
+init()
 
-screen = pygame.display.set_mode(SCREEN_SIZE)
-pygame.display.set_caption("The Mine")
+screen = set_mode(SCREEN_SIZE)
+set_caption("The Mine")
 
-clock = pygame.time.Clock()
+clock = Clock()
 
-fps_font = pygame.font.Font("data/fonts/Pixellari.ttf", 40)
+fps_font = Font("data/fonts/Pixellari.ttf", 40)
+
+
+# Credits ------------------------------------------------------------------- #
+def credits():
+    # texts and their positions
+    texts = ("Created by: Badzianga", "Graphics design: Piotr Szybiak")
+    positions = (
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4),
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64),
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 128)
+    )
+
+    while True:
+        # clear screen
+        screen.fill(BLACK)
+
+        for text, pos in zip(texts, positions):
+            text_surf = fps_font.render(text, True, WHITE)
+            text_rect = text_surf.get_rect(center=pos)
+            screen.blit(text_surf, text_rect)
+
+        for event in get_events():
+            if event.type == QUIT:
+                quit()
+                exit()
+            if event.type == KEYDOWN:
+                return
+        update_display()
+        clock.tick(FPS)
 
 
 # Pause menu loop ----------------------------------------------------------- #
@@ -41,9 +75,9 @@ def pause_menu():
         menu.draw(screen)
 
         # check events
-        for event in pygame.event.get():
+        for event in get_events():
             if event.type == QUIT:
-                pygame.quit()
+                quit()
                 exit()
 
             if event.type == KEYDOWN:
@@ -68,13 +102,13 @@ def pause_menu():
         # update menu (change highlight)
         menu.update()
 
-        pygame.display.update()
+        update_display()
         clock.tick(FPS)
 
 
 # Game loop ----------------------------------------------------------------- #
 def game_loop():
-    level = Level(screen)
+    level = Level(screen, clock)
 
     fps = FPS
     toggle_fps = False
@@ -92,9 +126,9 @@ def game_loop():
             return
 
         # check events
-        for event in pygame.event.get():
+        for event in get_events():
             if event.type == QUIT:
-                pygame.quit()
+                quit()
                 exit()
 
             if event.type == KEYDOWN:
@@ -166,7 +200,7 @@ def game_loop():
                 fps_font.render(str(int(clock.get_fps())), False, RED),
                 (8, 8)
             )
-        pygame.display.update()
+        update_display()
         clock.tick(fps)
 
 
@@ -182,23 +216,32 @@ def main_menu():
         menu.draw(screen)
 
         # check events
-        for event in pygame.event.get():
+        for event in get_events():
             if event.type == QUIT:
-                pygame.quit()
+                quit()
                 exit()
 
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
-                    pygame.quit()
+                    quit()
                     exit()
                 # select highlighted option in menu
                 if event.key in (K_SPACE, K_z):
-                    # start game
+                    # start new game
                     if menu.highlighted == 0:
                         game_loop()
-                    # quit game
+                    # load game
                     elif menu.highlighted == 1:
-                        pygame.quit()
+                        pass
+                    # options
+                    elif menu.highlighted == 2:
+                        pass
+                    # credits
+                    elif menu.highlighted == 3:
+                        credits()
+                    # quit game
+                    elif menu.highlighted == 4:
+                        quit()
                         exit()
                 # move highlight up
                 if event.key == K_UP:
@@ -210,7 +253,7 @@ def main_menu():
         # update menu (change highlight)
         menu.update()
 
-        pygame.display.update()
+        update_display()
         clock.tick(FPS)
 
 

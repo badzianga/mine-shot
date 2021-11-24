@@ -9,19 +9,20 @@ from pygame.locals import BLEND_RGBA_MULT
 from pygame.rect import Rect
 from pygame.sprite import Group
 from pygame.surface import Surface
-from pygame.time import delay
+from pygame.time import Clock
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import BLACK, CHUNK_SIZE, FPS, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Player, Spider
 from .functions import load_images
 from .tiles import Door, Tile, Torch
 
 
 class Level:
-    def __init__(self, screen: Surface):
+    def __init__(self, screen: Surface, clock: Clock):
         self.screen = screen
+        self.clock = clock
 
         # game elements containers - objects/groups/sets
         self.player = None
@@ -204,14 +205,15 @@ class Level:
         fade_surface = Surface(SCREEN_SIZE)
         fade_surface.fill(BLACK)
         if fading:
-            alphas = range(0, 255, 8)
+            alphas = range(0, 257, 24)
         else:
-            alphas = range(255, -1, -8)
+            alphas = range(256, -2, -24)
         for alpha in alphas:
             fade_surface.set_alpha(alpha)
             self.screen.blit(screen_copy, (0, 0))
             self.screen.blit(fade_surface, (0, 0))
             update_display()
+            self.clock.tick(FPS)
 
     def run(self):
         # look up and down

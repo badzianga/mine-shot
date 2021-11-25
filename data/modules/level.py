@@ -339,7 +339,7 @@ class Level:
 
         # check level changes
         for door in self.doors:
-            if self.player.rect.colliderect(door.rect) and self.key_up:
+            if self.player.rect.colliderect(door.rect) and self.key_up and self.player.on_ground:
                 if door.leads_to != "exit" and door.leads_to != "level_1":
                     if self.current_level == "level_0":
                         self.last_door_position = door.rect.midbottom

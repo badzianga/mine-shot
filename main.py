@@ -105,8 +105,6 @@ def settings_menu_loop():
                 if event.key == K_ESCAPE:
                     with open("settings.json", "w") as f:
                         dump_to_json(settings, f, indent=4)
-                    screen.fill(BLACK)
-                    menu.draw(screen)
                     screen_fade(screen, clock, True)
                     return
                 # select highlighted option in menu
@@ -121,8 +119,6 @@ def settings_menu_loop():
                     elif menu.highlighted == 4:
                         with open("settings.json", "w") as f:
                             dump_to_json(settings, f, indent=4)
-                        screen.fill(BLACK)
-                        menu.draw(screen)
                         screen_fade(screen, clock, True)
                         return
                 if event.key == K_LEFT:
@@ -199,6 +195,9 @@ def pause_menu_loop():
                     elif menu.highlighted == 1:
                         screen_fade(screen, clock, True)
                         settings_menu_loop()
+                        screen.blit(blurred, (0, 0))
+                        menu.draw(screen)
+                        screen_fade(screen, clock, False)
                     # return to main menu
                     elif menu.highlighted == 2:
                         screen_fade(screen, clock, True)
@@ -274,17 +273,19 @@ def game_loop():
                 if event.key == K_DOWN:
                     level.key_down = True
                     level.player.down = True
+                # shoot
                 if event.key == K_x:
-                    level.player.shoot()
+                    level.player.key_shoot = True
+                # special
                 if event.key == K_c:
-                    level.player.burst()
+                    level.player.key_special = True
                 # show/hide fps
                 if event.key == K_F12:
                     toggle_fps = not toggle_fps
                 # lock/unlock max fps
                 if event.key == K_F11:
                     if fps == FPS:
-                        fps = 1
+                        fps = 10000
                     else:
                         fps = FPS
                 # toggle darkness effect
@@ -309,6 +310,12 @@ def game_loop():
                 if event.key == K_DOWN:
                     level.key_down = False
                     level.player.down = False
+                # stop shooting
+                if event.key == K_x:
+                    level.player.key_shoot = False
+                # stop special
+                if event.key == K_c:
+                    level.player.key_special = False
 
         if toggle_fps:
             screen.blit(

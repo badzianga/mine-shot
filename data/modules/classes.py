@@ -8,7 +8,7 @@ from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.transform import scale2x
 
-from .constants import DARK_GRAY, GRAVITY, LIGHT_PURPLE, SCREEN_SIZE, WHITE
+from .constants import GRAVITY, SCREEN_SIZE, WHITE
 from .texts import DamageText
 
 
@@ -51,13 +51,13 @@ class ManaBar:
 
 
 class Bullet(Sprite):
-    def __init__(self, position: tuple, moving_left: bool, speed: int, angle_deg: int, damage: tuple, image: Surface):
+    def __init__(self, position: tuple, moving_left: bool, speed: int, angle_deg: float, damage: tuple, image: Surface, bounces=1):
         super().__init__()
 
         self.image = image
         self.rect = self.image.get_rect(center=position)
         self.true_position = Vector2(position[0], position[1])
-        self.bounces = 1
+        self.bounces = bounces
 
         if moving_left:
             self.vector = Vector2(-speed * cos(radians(angle_deg)), speed * sin(radians(angle_deg)))

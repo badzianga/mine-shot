@@ -1,16 +1,16 @@
-from math import cos, radians, sin, atan2, floor
+from math import atan2, cos, floor, radians, sin
 from random import choice, randint
 
-from pygame.image import load
 from pygame.math import Vector2
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
-# from pygame.draw import rect as draw_rect
 from pygame.time import get_ticks
 
-from .classes import Bullet, Gold
-from .constants import BLACK, BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE
+from .classes import Gold
+from .constants import (BLACK, BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED,
+                        TILE_SIZE)
+from .guns import BigShot, Handgun, Minigun, Shotgun
 from .texts import DamageText
 
 
@@ -22,7 +22,6 @@ class Player(Sprite):
         self.image = Surface((TILE_SIZE // 2, TILE_SIZE - 8))
         self.image.fill(BLUE)
         self.flip = False
-        self.bullet_img = load("data/img/bullet.png").convert_alpha()
 
         # collision rect
         self.rect = self.image.get_rect(midbottom=position)
@@ -44,16 +43,14 @@ class Player(Sprite):
         self.invincibility_duration = 90  # frames
         self.debuffs = {"burning": 0, "poison": 0}  # debuff name: amount of get_damage to get
 
-        # shooting
-        self.shoot_cooldown = 0
-        self.damage = (1, 5)
-
         # pressed keys
         self.up = False
         self.down = False
         self.left = False
         self.right = False
         self.jump = False
+        self.key_shoot = False
+        self.key_special = False
 
         self.gold = 0
 
@@ -62,6 +59,9 @@ class Player(Sprite):
         self.gold_group = gold_group
         self.bullet_group = bullet_group
         self.texts = texts
+
+        # shooting
+        self.gun = Minigun(self.bullet_group, self.vector)
 
     def get_damage(self, damage: int):
         self.health -= damage
@@ -73,40 +73,6 @@ class Player(Sprite):
             color = RED
         self.texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), color))
         self.invincible = True
-
-    def shoot(self):
-        if self.shoot_cooldown <= 0:
-            self.shoot_cooldown = 45
-            if self.up:
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -55, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -60, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -65, self.damage, self.bullet_img))
-            elif self.down:
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 55, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 60, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 65, self.damage, self.bullet_img))
-            else:
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 5, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, 0, self.damage, self.bullet_img))
-                self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, 20, -5, self.damage, self.bullet_img))
-
-    def burst(self):
-        if self.shoot_cooldown <= 0 and self.mana >= 40:
-            self.mana -= 40
-            self.shoot_cooldown = 60
-            if self.up:
-                for _ in range(8):
-                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-100, -80), self.damage, self.bullet_img))
-            elif self.down:
-                for _ in range(8):
-                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(80, 100), self.damage, self.bullet_img))
-                if self.vector.y < 0:
-                    self.vector.y = self.vector.y * 2.25
-                else:
-                    self.vector.y = -13
-            else:
-                for _ in range(8):
-                    self.bullet_group.add(Bullet((self.rect.centerx, self.rect.centery), self.flip, randint(16, 20), randint(-10, 10), self.damage, self.bullet_img))
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -243,12 +209,19 @@ class Player(Sprite):
         self.check_coins_collisions()
 
         # update shoot cooldown
-        if self.shoot_cooldown > 0:
-            self.shoot_cooldown -= 1
+        if self.gun.cooldown > 0:
+            self.gun.cooldown -= 1
 
         # regenerate mana
         if self.mana < self.max_mana:
             self.mana += self.mana_regen
+
+        # shoot
+        if self.key_shoot:
+            self.gun.shoot(self.rect, self.flip, self.up, self.down)
+        # special
+        if self.key_special:
+            self.mana = self.gun.special(self.rect, self.flip, self.mana, self.up, self.down)
 
         # move left
         if self.left:

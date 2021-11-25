@@ -1,4 +1,6 @@
 # Imports ------------------------------------------------------------------- #
+from json import dump as dump_to_json
+from json import load as load_json
 from sys import exit
 
 from PIL.Image import frombytes
@@ -16,10 +18,13 @@ from pygame.time import Clock
 
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE, WHITE
 from data.modules.level import Level
-from data.modules.menus import Menu, PauseMenu
+from data.modules.menus import Menu, PauseMenu, SettingsMenu
 
 # Init ---------------------------------------------------------------------- #
 init()
+
+with open("settings.json", "r") as f:
+    settings = load_json(f)
 
 screen = set_mode(SCREEN_SIZE)
 set_caption("The Mine")
@@ -35,8 +40,7 @@ def credits():
     texts = ("Created by: Badzianga", "Graphics design: Piotr Szybiak")
     positions = (
         (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4),
-        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64),
-        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 128)
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64)
     )
 
     while True:
@@ -58,8 +62,87 @@ def credits():
         clock.tick(FPS)
 
 
+# Settings menu ------------------------------------------------------------- #
+def settings_menu_loop():
+    menu = SettingsMenu(settings)
+
+    while True:
+        # clear screen
+        screen.fill("BLACK")
+
+        # draw menu
+        menu.draw(screen)
+
+        # check events
+        for event in get_events():
+            if event.type == QUIT:
+                # save settings before quitting
+                with open("settings.json", "w") as f:
+                    dump_to_json(settings, f, indent=4)
+                quit()
+                exit()
+
+            if event.type == KEYDOWN:
+                # leave settings menu
+                if event.key == K_ESCAPE:
+                    with open("settings.json", "w") as f:
+                        dump_to_json(settings, f, indent=4)
+                    return
+                # select highlighted option in menu
+                if event.key in (K_SPACE, K_z):
+                    # toggle fullscreen
+                    if menu.highlighted == 0:
+                        settings["fullscreen"] = not settings["fullscreen"]
+                        # TODO - apply fullscreen
+                    elif menu.highlighted == 3:
+                        pass  # TODO - reset game progress
+                    # leave settings menu
+                    elif menu.highlighted == 4:
+                        with open("settings.json", "w") as f:
+                            dump_to_json(settings, f, indent=4)
+                        return
+                if event.key == K_LEFT:
+                    # toggle fullscreen
+                    if menu.highlighted == 0:
+                        settings["fullscreen"] = not settings["fullscreen"]
+                        # TODO - apply fullscreen
+                    # music volume down
+                    elif menu.highlighted == 1:
+                        if settings["music"] > 0:
+                            settings["music"] -= 10
+                    # sounds volume down
+                    elif menu.highlighted == 2:
+                        if settings["sfx"] > 0:
+                            settings["sfx"] -= 10
+                if event.key == K_RIGHT:
+                    # toggle fullscreen
+                    if menu.highlighted == 0:
+                        settings["fullscreen"] = not settings["fullscreen"]
+                        # TODO - apply fullscreen
+                    # music volume up
+                    elif menu.highlighted == 1:
+                        if settings["music"] < 100:
+                            settings["music"] += 10
+                    # sounds volume up
+                    elif menu.highlighted == 2:
+                        if settings["sfx"] < 100:
+                            settings["sfx"] += 10
+                # move highlight up
+                if event.key == K_UP:
+                    menu.key_up = True
+                # move highlight down
+                if event.key == K_DOWN:
+                    menu.key_down = True
+
+        # update menu (change highlight)
+        menu.update()
+
+        update_display()
+        clock.tick(FPS)
+
+
 # Pause menu loop ----------------------------------------------------------- #
-def pause_menu():
+def pause_menu_loop():
     # convert pygame surface to pillow image and blur it
     str_surf = tostring(screen.copy(), "RGB", False)
     blurred = frombytes("RGB", SCREEN_SIZE, str_surf).filter(GaussianBlur(5))
@@ -89,8 +172,10 @@ def pause_menu():
                     # unpause game
                     if menu.highlighted == 0:
                         return True
-                    # return to main menu
                     elif menu.highlighted == 1:
+                        settings_menu_loop()
+                    # return to main menu
+                    elif menu.highlighted == 2:
                         return False
                 # move highlight up
                 if event.key == K_UP:
@@ -134,7 +219,7 @@ def game_loop():
             if event.type == KEYDOWN:
                 # pause game
                 if event.key == K_ESCAPE:
-                    looping = pause_menu()
+                    looping = pause_menu_loop()
                     # reset keys
                     level.player.left = False
                     level.player.right = False
@@ -227,20 +312,17 @@ def main_menu():
                     exit()
                 # select highlighted option in menu
                 if event.key in (K_SPACE, K_z):
-                    # start new game
+                    # start game
                     if menu.highlighted == 0:
                         game_loop()
-                    # load game
+                    # settings
                     elif menu.highlighted == 1:
-                        pass
-                    # options
-                    elif menu.highlighted == 2:
-                        pass
+                        settings_menu_loop()
                     # credits
-                    elif menu.highlighted == 3:
+                    elif menu.highlighted == 2:
                         credits()
                     # quit game
-                    elif menu.highlighted == 4:
+                    elif menu.highlighted == 3:
                         quit()
                         exit()
                 # move highlight up
@@ -257,4 +339,5 @@ def main_menu():
         clock.tick(FPS)
 
 
-main_menu()
+if __name__ == "__main__":
+    main_menu()

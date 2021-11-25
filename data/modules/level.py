@@ -2,7 +2,6 @@ from json import load as load_json
 from random import randint
 
 from numpy import loadtxt, uint8
-from pygame.display import update as update_display
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
@@ -13,9 +12,9 @@ from pygame.time import Clock
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import BLACK, CHUNK_SIZE, FPS, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Player, Spider
-from .functions import load_images
+from .functions import load_images, screen_fade
 from .tiles import Door, Tile, Torch
 
 
@@ -200,21 +199,6 @@ class Level:
         self.key_up = False
         self.key_down = False
 
-    def screen_fade(self, fading: bool):
-        screen_copy = self.screen.copy()
-        fade_surface = Surface(SCREEN_SIZE)
-        fade_surface.fill(BLACK)
-        if fading:
-            alphas = range(0, 257, 24)
-        else:
-            alphas = range(256, -2, -24)
-        for alpha in alphas:
-            fade_surface.set_alpha(alpha)
-            self.screen.blit(screen_copy, (0, 0))
-            self.screen.blit(fade_surface, (0, 0))
-            update_display()
-            self.clock.tick(FPS)
-
     def run(self):
         # look up and down
         if self.key_up:
@@ -360,8 +344,8 @@ class Level:
                     if self.current_level == "level_0":
                         self.last_door_position = door.rect.midbottom
                     self.current_level = door.leads_to
-                    self.screen_fade(True)
+                    screen_fade(self.screen, self.clock, True)
                     self.restart_level()
                     self.load_level()
                     self.run()
-                    self.screen_fade(False)
+                    screen_fade(self.screen, self.clock, False)

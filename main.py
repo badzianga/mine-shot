@@ -11,14 +11,16 @@ from pygame.display import update as update_display
 from pygame.event import get as get_events
 from pygame.font import Font
 from pygame.image import fromstring, tostring
-from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12,
-                           K_LEFT, K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP,
-                           QUIT, K_c, K_x, K_z)
+from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
+                           K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c,
+                           K_x, K_z)
+from pygame.mouse import set_visible
 from pygame.time import Clock
 
 from data.modules.constants import BLACK, FPS, RED, SCREEN_SIZE, WHITE
 from data.modules.level import Level
 from data.modules.menus import Menu, PauseMenu, SettingsMenu
+from data.modules.functions import screen_fade
 
 # Init ---------------------------------------------------------------------- #
 init()
@@ -31,6 +33,7 @@ set_caption("The Mine")
 
 if settings["fullscreen"]:
     toggle_fullscreen()
+set_visible(False)
 
 clock = Clock()
 
@@ -46,6 +49,13 @@ def credits():
         (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64)
     )
 
+    screen.fill(BLACK)
+    for text, pos in zip(texts, positions):
+        text_surf = fps_font.render(text, True, WHITE)
+        text_rect = text_surf.get_rect(center=pos)
+        screen.blit(text_surf, text_rect)
+    screen_fade(screen, clock, False)
+
     while True:
         # clear screen
         screen.fill(BLACK)
@@ -60,6 +70,7 @@ def credits():
                 quit()
                 exit()
             if event.type == KEYDOWN:
+                screen_fade(screen, clock, True)
                 return
         update_display()
         clock.tick(FPS)
@@ -69,9 +80,13 @@ def credits():
 def settings_menu_loop():
     menu = SettingsMenu(settings)
 
+    screen.fill(BLACK)
+    menu.draw(screen)
+    screen_fade(screen, clock, False)
+
     while True:
         # clear screen
-        screen.fill("BLACK")
+        screen.fill(BLACK)
 
         # draw menu
         menu.draw(screen)
@@ -90,6 +105,9 @@ def settings_menu_loop():
                 if event.key == K_ESCAPE:
                     with open("settings.json", "w") as f:
                         dump_to_json(settings, f, indent=4)
+                    screen.fill(BLACK)
+                    menu.draw(screen)
+                    screen_fade(screen, clock, True)
                     return
                 # select highlighted option in menu
                 if event.key in (K_SPACE, K_z):
@@ -103,6 +121,9 @@ def settings_menu_loop():
                     elif menu.highlighted == 4:
                         with open("settings.json", "w") as f:
                             dump_to_json(settings, f, indent=4)
+                        screen.fill(BLACK)
+                        menu.draw(screen)
+                        screen_fade(screen, clock, True)
                         return
                 if event.key == K_LEFT:
                     # toggle fullscreen
@@ -176,9 +197,11 @@ def pause_menu_loop():
                     if menu.highlighted == 0:
                         return True
                     elif menu.highlighted == 1:
+                        screen_fade(screen, clock, True)
                         settings_menu_loop()
                     # return to main menu
                     elif menu.highlighted == 2:
+                        screen_fade(screen, clock, True)
                         return False
                 # move highlight up
                 if event.key == K_UP:
@@ -200,6 +223,10 @@ def game_loop():
 
     fps = FPS
     toggle_fps = False
+
+    screen.fill(BLACK)
+    level.run()
+    screen_fade(screen, clock, False)
 
     looping = True
     while looping:
@@ -296,6 +323,10 @@ def game_loop():
 def main_menu():
     menu = Menu()
 
+    screen.fill(BLACK)
+    menu.draw(screen)
+    screen_fade(screen, clock, False)
+
     while True:
         # clear screen
         screen.fill(BLACK)
@@ -317,15 +348,28 @@ def main_menu():
                 if event.key in (K_SPACE, K_z):
                     # start game
                     if menu.highlighted == 0:
+                        screen_fade(screen, clock, True)
                         game_loop()
+                        screen.fill(BLACK)
+                        menu.draw(screen)
+                        screen_fade(screen, clock, False)
                     # settings
                     elif menu.highlighted == 1:
+                        screen_fade(screen, clock, True)
                         settings_menu_loop()
+                        screen.fill(BLACK)
+                        menu.draw(screen)
+                        screen_fade(screen, clock, False)
                     # credits
                     elif menu.highlighted == 2:
+                        screen_fade(screen, clock, True)
                         credits()
+                        screen.fill(BLACK)
+                        menu.draw(screen)
+                        screen_fade(screen, clock, False)
                     # quit game
                     elif menu.highlighted == 3:
+                        screen_fade(screen, clock, True)
                         quit()
                         exit()
                 # move highlight up

@@ -3,9 +3,9 @@
         "11;16": "exit",
         "31;14": "level_1",
         "9;9": "highscores",
-        "16;16": "shop"
+        "16;16": "achievements"
     },
-    "shop": {
+    "achievements": {
         "8;9": "level_0"
     },
     "highscores": {

@@ -80,7 +80,8 @@ class Level:
         platform_img = scale2x(scale2x(load_image("data/img/platform.png").convert_alpha()))
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
-        cave_door_img = load_image("data/img/cave_door.png").convert_alpha()
+        doors = {4: load_image("data/img/doors/4.png").convert_alpha(), 6: load_image("data/img/doors/6.png").convert_alpha(),
+                 7: load_image("data/img/doors/7.png").convert_alpha(), 8: load_image("data/img/doors/8.png").convert_alpha()}
 
         # load doors data
         with open("data/maps/entrances_data.json", "r") as f:
@@ -88,7 +89,31 @@ class Level:
 
         # load map
         map_data = loadtxt(f"data/maps/{self.current_level}.csv", dtype=uint8, delimiter=',')
+        
+        # update level_0
+        if self.current_level == "level_0":
+            # highscores door
+            if self.save_data["deaths"] > 0:
+                map_data[16][16] = 6
+                map_data[16][15] = 5
+                map_data[16][17] = 5
+            # achievements door
+            if self.save_data["depth"] > 0:
+                map_data[9][9] = 6
+                map_data[9][8] = 5
+                map_data[9][10] = 5
+                for i in range(11, 17):
+                    map_data[i][19] = 2
+            # path to achievements
+            if self.save_data["depth"] > 5:
+                map_data[10][13] = 5
+                map_data[10][16] = 5
+            if self.save_data["slimes"] + self.save_data["spiders"] + self.save_data["bats"] >= 100:
+                map_data[13][27] = 5
+                map_data[14][24] = 5
+                map_data[15][21] = 5
 
+                         
         # create empty chunks structure
         # length and width of map must be a multiple of 8
         for y in range(len(map_data) // CHUNK_SIZE):
@@ -127,11 +152,12 @@ class Level:
                 elif cell == 3:
                     self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
                 # create doors
-                elif cell == 4:
-                    # set fixed door (entrance, shop, highscores)
-                    if self.current_level in doors_data.keys():
-                        image_rect = cave_door_img.get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
-                        self.doors.add(Door((image_rect.x, image_rect.y), cave_door_img, doors_data[self.current_level][f"{x};{y}"], True))
+                elif cell in (4, 6):
+                    image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
+                    self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], doors_data[self.current_level][f"{x};{y}"], True))
+                elif cell in (7, 8):
+                    image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
+                    self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], doors_data[self.current_level][f"{x};{y}"], False))
                 # create torches
                 elif cell == 5:
                     self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
@@ -143,7 +169,7 @@ class Level:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
 
         # create player and set position
-        if len(self.doors) == 1:  # shop/highscores
+        if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
             self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts)
         elif self.last_door_position is not None:  # last door in entrance map
@@ -340,13 +366,14 @@ class Level:
 
         # check level changes
         for door in self.doors:
-            if self.player.rect.colliderect(door.rect) and self.key_up and self.player.on_ground:
-                if door.leads_to != "exit" and door.leads_to != "level_1":
-                    if self.current_level == "level_0":
-                        self.last_door_position = door.rect.midbottom
-                    self.current_level = door.leads_to
-                    screen_fade(self.screen, self.clock, True)
-                    self.restart_level()
-                    self.load_level()
-                    self.run()
-                    screen_fade(self.screen, self.clock, False)
+            if self.player.rect.colliderect(door.rect):
+                if self.key_up and self.player.on_ground and door.allowed:
+                    if door.leads_to != "exit" and door.leads_to != "level_1":
+                        if self.current_level == "level_0":
+                            self.last_door_position = door.rect.midbottom
+                        self.current_level = door.leads_to
+                        screen_fade(self.screen, self.clock, True)
+                        self.restart_level()
+                        self.load_level()
+                        self.run()
+                        screen_fade(self.screen, self.clock, False)

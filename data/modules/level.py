@@ -19,7 +19,7 @@ from .tiles import Door, Tile, Torch
 
 
 class Level:
-    def __init__(self, screen: Surface, clock: Clock):
+    def __init__(self, screen: Surface, clock: Clock, save_data: dict):
         self.screen = screen
         self.clock = clock
 
@@ -33,6 +33,7 @@ class Level:
         self.gold_group = Group()
         self.doors = Group()
 
+        self.save_data = save_data
         self.current_level = "level_0"  # entrance level
         self.last_door_position = None
 

@@ -2,6 +2,7 @@
 from json import dump as dump_to_json
 from json import load as load_json
 from sys import exit
+from os import listdir
 
 from PIL.Image import frombytes
 from PIL.ImageFilter import GaussianBlur
@@ -114,7 +115,10 @@ def settings_menu_loop():
                         settings["fullscreen"] = not settings["fullscreen"]
                         toggle_fullscreen()
                     elif menu.highlighted == 3:
-                        pass  # TODO - reset game progress
+                        save_data = {"slimes": 0, "spiders": 0, "bats": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                        with open("save.json", "w") as f:
+                            dump_to_json(save_data, f, indent=4)
+                            return True
                     # leave settings menu
                     elif menu.highlighted == 4:
                         with open("settings.json", "w") as f:
@@ -194,7 +198,9 @@ def pause_menu_loop():
                         return True
                     elif menu.highlighted == 1:
                         screen_fade(screen, clock, True)
-                        settings_menu_loop()
+                        reset = settings_menu_loop()
+                        if reset:
+                            return False
                         screen.blit(blurred, (0, 0))
                         menu.draw(screen)
                         screen_fade(screen, clock, False)
@@ -217,8 +223,8 @@ def pause_menu_loop():
 
 
 # Game loop ----------------------------------------------------------------- #
-def game_loop():
-    level = Level(screen, clock)
+def game_loop(save_data):
+    level = Level(screen, clock, save_data)
 
     fps = FPS
     toggle_fps = False
@@ -242,12 +248,16 @@ def game_loop():
         # check events
         for event in get_events():
             if event.type == QUIT:
+                with open("save.json", "w") as f:
+                    dump_to_json(level.save_data, f, indent=4)
                 quit()
                 exit()
 
             if event.type == KEYDOWN:
                 # pause game
                 if event.key == K_ESCAPE:
+                    with open("save.json", "w") as f:
+                        dump_to_json(level.save_data, f, indent=4)
                     looping = pause_menu_loop()
                     # reset keys
                     level.player.left = False
@@ -355,8 +365,16 @@ def main_menu():
                 if event.key in (K_SPACE, K_z):
                     # start game
                     if menu.highlighted == 0:
+                        # create save file if not exists
+                        if "save.json" in listdir():
+                            with open("save.json", "r") as f:
+                                save_data = load_json(f)
+                        else:
+                            save_data = {"slimes": 0, "spiders": 0, "bats": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                            with open("save.json", "w") as f:
+                                dump_to_json(save_data, f, indent=4)
                         screen_fade(screen, clock, True)
-                        game_loop()
+                        game_loop(save_data)
                         screen.fill(BLACK)
                         menu.draw(screen)
                         screen_fade(screen, clock, False)

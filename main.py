@@ -115,7 +115,7 @@ def settings_menu_loop():
                         settings["fullscreen"] = not settings["fullscreen"]
                         toggle_fullscreen()
                     elif menu.highlighted == 3:
-                        save_data = {"slimes": 0, "spiders": 0, "bats": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                        save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": {}}
                         with open("save.json", "w") as f:
                             dump_to_json(save_data, f, indent=4)
                             return True
@@ -243,6 +243,9 @@ def game_loop(save_data):
             level.run()
         # if died, return to main menu
         else:
+            level.save_data["deaths"] += 1
+            with open("save.json", "w") as f:
+                    dump_to_json(level.save_data, f, indent=4)
             return
 
         # check events
@@ -370,7 +373,7 @@ def main_menu():
                             with open("save.json", "r") as f:
                                 save_data = load_json(f)
                         else:
-                            save_data = {"slimes": 0, "spiders": 0, "bats": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                            save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": {}}
                             with open("save.json", "w") as f:
                                 dump_to_json(save_data, f, indent=4)
                         screen_fade(screen, clock, True)

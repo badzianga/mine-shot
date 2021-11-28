@@ -1,3 +1,4 @@
+from json import dump as dump_to_json
 from json import load as load_json
 from random import randint
 
@@ -15,7 +16,7 @@ from .classes import HealthBar, ManaBar
 from .constants import CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Player
 from .functions import load_images, screen_fade
-from .tiles import Door, Lava, Tile, Torch
+from .tiles import Door, Lava, LavaTile, Tile, Torch
 
 
 class Level:
@@ -35,7 +36,8 @@ class Level:
 
         self.save_data = save_data
         self.score = 0
-        self.current_level = "level_0"  # entrance level
+        self.current_map = "level_0"  # entrance level
+        self.current_level = 0
         self.last_door_position = None
 
         # scrolling
@@ -45,6 +47,10 @@ class Level:
         # pressed keys (looking around)
         self.key_up = False
         self.key_down = False
+
+        # load doors data
+        with open("data/maps/entrances_data.json", "r") as f:
+            self.doors_data = load_json(f)
 
         # load level - create game map with chunks
         self.load_level()
@@ -65,35 +71,26 @@ class Level:
         self.torch_light = load_image("data/img/lights/torch_light.png").convert_alpha()
         self.torch_particle_light = load_image("data/img/lights/torch_particle_light.png").convert_alpha()
         self.bullet_light = load_image("data/img/lights/bullet_light.png").convert_alpha()
+        self.lava_light = load_image("data/img/lights/lava_light.png").convert_alpha()
 
-        # parallax background
-        # self.background_images = ((0, scale2x(load_image("data/img/background/background1.png").convert_alpha())),
-        #                           (0.05, scale2x(load_image("data/img/background/background2.png").convert_alpha())),
-        #                           (0.1, scale2x(load_image("data/img/background/background3.png").convert_alpha())),
-        #                           (0.15, scale2x(load_image("data/img/background/background4.png").convert_alpha()))
-        #                           )
-
-    def load_level(self):
+    def load_level(self, very_important_variable=None):
         # images
         stone_img = scale2x(scale2x(load_image("data/img/stone.png").convert()))
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
-        platform_img = scale2x(scale2x(load_image("data/img/platform.png").convert_alpha()))
+        platform_img = load_image("data/img/platform.png").convert_alpha()
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
         lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
+        lava_img = load_image("data/img/lava.png").convert()
         doors = {4: load_image("data/img/doors/4.png").convert_alpha(), 6: load_image("data/img/doors/6.png").convert_alpha(),
                  7: load_image("data/img/doors/7.png").convert_alpha(), 8: load_image("data/img/doors/8.png").convert_alpha()}
 
-        # load doors data
-        with open("data/maps/entrances_data.json", "r") as f:
-            doors_data = load_json(f)
-
         # load map
-        map_data = loadtxt(f"data/maps/{self.current_level}.csv", dtype=uint8, delimiter=',')
+        map_data = loadtxt(f"data/maps/{self.current_map}.csv", dtype=uint8, delimiter=',')
         
         # update level_0
-        if self.current_level == "level_0":
+        if self.current_map == "level_0":
             # highscores door
             if self.save_data["deaths"] > 0:
                 map_data[16][16] = 6
@@ -110,12 +107,11 @@ class Level:
             if self.save_data["depth"] > 5:
                 map_data[10][13] = 5
                 map_data[10][16] = 5
-            if self.save_data["slimes"] + self.save_data["spiders"] + self.save_data["bats"] >= 100:
+            if self.save_data["kills"] >= 100:
                 map_data[13][27] = 5
                 map_data[14][24] = 5
                 map_data[15][21] = 5
 
-                         
         # create empty chunks structure
         # length and width of map must be a multiple of 8
         for y in range(len(map_data) // CHUNK_SIZE):
@@ -156,28 +152,35 @@ class Level:
                 # create doors
                 elif cell in (4, 6):
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
-                    self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], doors_data[self.current_level][f"{x};{y}"], True))
+                    if self.doors_data[self.current_map][f"{x};{y}"] == "player":
+                        self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
+                    else:
+                        self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
-                    self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], doors_data[self.current_level][f"{x};{y}"], False))
+                    self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], False))
                 # create torches
                 elif cell == 5:
                     self.game_map[current_chunk]["torches"].add(Torch((x * TILE_SIZE, y * TILE_SIZE - 32), torch_imgs))
                 # create lava
                 elif cell == 9:
                     self.game_map[current_chunk]["lava"].add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
+                elif cell == 10:
+                    self.game_map[current_chunk]["lava"].add(LavaTile((x * TILE_SIZE, y * TILE_SIZE), lava_img))
                 # create background tiles
                 if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
 
-        # create player and set position
+        # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
             self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts)
-        elif self.last_door_position is not None:  # last door in entrance map
-            self.player = Player(self.last_door_position, self.enemies, self.gold_group, self.bullet_group, self.texts)
-        else:  # first time in entrance map (fixed position, temporary)
-            self.player = Player((736, 1096), self.enemies, self.gold_group, self.bullet_group, self.texts)
+        elif very_important_variable is not None:
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
+        # elif very_important_variable is None and self.current_map == "level_0":
+            
+        
         # center scroll to the player
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)
         self.true_scroll[1] += (self.player.rect.y - self.true_scroll[1] - 328)
@@ -199,14 +202,14 @@ class Level:
         self.scroll[1] = int(self.true_scroll[1])
 
         # max scrolls
-        if self.scroll[0] < 100:
-            self.scroll[0] = 100
-        elif self.scroll[0] > 1190:
-            self.scroll[0] = 1190
-        if self.scroll[1] < 100:
-            self.scroll[1] = 100
-        elif self.scroll[1] > 704:
-            self.scroll[1] = 704
+        # if self.scroll[0] < 100:
+        #     self.scroll[0] = 100
+        # elif self.scroll[0] > 1190:
+        #     self.scroll[0] = 1190
+        # if self.scroll[1] < 100:
+        #     self.scroll[1] = 100
+        # elif self.scroll[1] > 704:
+        #     self.scroll[1] = 704
 
     def restart_level(self):
         # reset all containers
@@ -270,10 +273,6 @@ class Level:
         # draw background tiles
         for tile in objects["bg_tiles"]:
             tile.draw(self.screen, self.scroll)
-
-        # draw background
-        # for speed, image in self.background_images:
-        #     self.screen.blit(image, (0 - self.scroll[0] * speed, 0 - self.scroll[1] * speed))
 
         # draw tiles
         for tile in set.union(objects["tiles"], objects["collidable"]):
@@ -345,7 +344,7 @@ class Level:
         if self.darkness:
             # create darkness surface
             darkness = Surface(SCREEN_SIZE)
-            darkness.fill((32, 32, 32))
+            darkness.fill((0, 0, 0))
             # player light
             darkness.blit(self.player_light, self.player_light.get_rect(center=(self.player.rect.centerx - self.scroll[0], self.player.rect.centery - self.scroll[1])))
             # torch lights
@@ -354,6 +353,9 @@ class Level:
             # torch particle lights
             for particle in self.torch_particles:
                 darkness.blit(self.torch_particle_light, self.torch_particle_light.get_rect(center=(particle.position[0] - self.scroll[0], particle.position[1] - self.scroll[1])))
+            # lava light
+            for lava in objects["lava"]:
+                darkness.blit(self.lava_light, self.lava_light.get_rect(center=(lava.rect.centerx - self.scroll[0], lava.rect.centery - self.scroll[1])))
             # bullet lights
             for bullet in self.bullet_group:
                 darkness.blit(self.bullet_light, self.bullet_light.get_rect(center=(bullet.rect.centerx - self.scroll[0], bullet.rect.centery - self.scroll[1])))
@@ -370,11 +372,24 @@ class Level:
         for door in self.doors:
             if self.player.rect.colliderect(door.rect):
                 if self.key_up and self.player.on_ground and door.allowed:
-                    if self.current_level in ("level_0", "achievements", "highscores"):
-                        self.last_door_position = door.rect.midbottom
-                    self.current_level = door.leads_to
+                    coords = None
+                    if self.current_map in ("highscores", "achievements"):
+                        for coords, name in self.doors_data["level_0"].items():
+                            if name == self.current_map:
+                                coords = coords.split(';')
+                                coords = tuple(map(int, coords))
+                                break
+                    elif "level" in door.leads_to:
+                        level_number = int(door.leads_to[6:])
+                        if level_number > 0:
+                            self.current_level += 1
+                            if self.current_level - 1 > self.save_data["depth"]:
+                                self.save_data["depth"] = self.current_level - 1
+                            with open("save.json", "w") as f:
+                                dump_to_json(self.save_data, f, indent=4)
+                    self.current_map = door.leads_to
                     screen_fade(self.screen, self.clock, True)
                     self.restart_level()
-                    self.load_level()
+                    self.load_level(coords)
                     self.run()
                     screen_fade(self.screen, self.clock, False)

@@ -1,6 +1,6 @@
 {
     "level_0": {
-        "11;16": "exit",
+        "11;16": "player",
         "31;14": "level_1",
         "9;9": "highscores",
         "16;16": "achievements"
@@ -10,5 +10,49 @@
     },
     "highscores": {
         "11;9": "level_0"
+    },
+    "level_1": {
+        "10;10": "player",
+        "9;20": "level_2"
+    },
+    "level_2": {
+        "40;9": "player",
+        "30;24": "level_3"
+    },
+    "level_3": {
+        "45;10": "player",
+        "13;25": "level_4"
+    },
+    "level_4": {
+        "9;12": "player",
+        "40;23": "level_5"
+    },
+    "level_5": {
+        "46;10": "player",
+        "19;24": "level_6"
+    },
+    "level_6": {
+        "45;13": "player",
+        "47;22": "level_7"
+    },
+    "level_7": {
+        "63;16": "player",
+        "13;41": "level_8"
+    },
+    "level_8": {
+        "9;12": "player",
+        "8;48": "level_9"
+    },
+    "level_9": {
+        "12;11": "player",
+        "24;48": "level_10"
+    },
+    "level_10": {
+        "10;11": "player",
+        "63;48": "level_11"
+    },
+    "level_11": {
+        "8;10": "player",
+        "8;41": "level_12"
     }
 }

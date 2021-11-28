@@ -56,6 +56,16 @@ class Lava(AnimatedTile):
         self.damage = (2, 3)
 
 
+class LavaTile(Tile):
+    def __init__(self, position: tuple, image: Surface):
+        super().__init__(position, image)
+
+        self.damage = (2, 3)
+
+    def update(self, screen: Surface, scroll: list):
+        self.draw(screen, scroll)
+
+
 class Torch(AnimatedTile):
     def __init__(self, position: tuple, images: tuple):
         super().__init__(position, images, 0.25)

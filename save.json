@@ -1,7 +1,5 @@
 {
-    "slimes": 0,
-    "spiders": 0,
-    "bats": 0,
+    "kills": 0,
     "deaths": 0,
     "depth": 0,
     "highscores": {}

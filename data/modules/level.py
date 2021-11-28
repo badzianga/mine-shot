@@ -58,9 +58,6 @@ class Level:
         with open("upgrades.json", "r") as f:
             self.upgrades_data = load_json(f)
 
-        # load level - create game map with chunks
-        self.load_level()
-
         # user interface
         self.health_bar = HealthBar()
         self.mana_bar = ManaBar()
@@ -84,8 +81,14 @@ class Level:
         for image_name in self.upgrades_data.keys():
             image = load_image(f"data/img/upgrades/{image_name}.png").convert()
             self.upgrades_imgs[image_name] = image
+
         self.randomized_upgrades = []
         self.bought_upgrades = []
+
+        self.player_gold = 0
+
+        # load level - create game map with chunks
+        self.load_level()
 
     def load_level(self, very_important_variable=None):
         # images
@@ -177,7 +180,7 @@ class Level:
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
                     if self.doors_data[self.current_map][f"{x};{y}"] == "player":
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
-                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
                     else:
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
@@ -202,9 +205,9 @@ class Level:
         # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
-            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts)
+            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
         elif very_important_variable is not None:
-            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts)
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
         # elif very_important_variable is None and self.current_map == "level_0":
             
         
@@ -314,7 +317,10 @@ class Level:
             self.screen.blit(text_img, text_rect)
             if self.player.rect.colliderect(upgrade.collision_rect):
                 if self.player.gold >= self.upgrades_data[upgrade.type] and self.key_up:
-                    self.bought_upgrades.append(upgrade.type)
+                    if upgrade.type == "Healing":
+                        self.player.health = self.player.max_health
+                    else:
+                        self.bought_upgrades.append(upgrade.type)
                     self.player.gold -= self.upgrades_data[upgrade.type]
                     upgrade.kill()
             
@@ -443,6 +449,7 @@ class Level:
                     else:
                         self.current_map = door.leads_to
 
+                    self.player_gold = self.player.gold
                     screen_fade(self.screen, self.clock, True)
                     self.restart_level()
                     self.load_level(coords)

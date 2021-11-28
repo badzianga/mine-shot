@@ -15,7 +15,7 @@ from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group):
+    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int):
         super().__init__()
 
         # image - temporarily just a single-color surface
@@ -52,7 +52,7 @@ class Player(Sprite):
         self.key_shoot = False
         self.key_special = False
 
-        self.gold = 60
+        self.gold = gold
 
         # external groups
         self.enemies = enemies
@@ -62,6 +62,23 @@ class Player(Sprite):
 
         # shooting
         self.gun = Minigun(self.bullet_group, self.vector)
+
+        # apply bought upgrades
+        for upgrade in upgrades:
+            if upgrade == "BulletSpeedUp":
+                self.gun.cooldown = int(self.gun.cooldown * 0.8)
+            elif upgrade == "HealthUp":
+                self.max_health += 10
+                self.health += 10
+            elif upgrade == "ManaRegen":
+                self.mana_regen += 0.05
+            elif upgrade == "ManaUp":
+                self.max_mana += 25
+            elif upgrade == "SpeedUp":
+                self.speed += 1
+                self.jump_speed -= 1
+            elif upgrade == "Strength":
+                self.gun.damage = (self.gun.damage[0] + 1, self.gun.damage[1] + 2)
 
     def get_damage(self, damage: int):
         self.health -= damage

@@ -1,8 +1,8 @@
 from json import dump as dump_to_json
 from json import load as load_json
-from random import randint
+from random import choice, randint
 
-from numpy import loadtxt, short, uint8
+from numpy import loadtxt, uint8
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
@@ -13,10 +13,10 @@ from pygame.time import Clock
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Player
 from .functions import load_images, screen_fade
-from .tiles import Door, Lava, LavaTile, Tile, Torch
+from .tiles import Door, Lava, LavaTile, Tile, Torch, Upgrade
 
 
 class Level:
@@ -33,6 +33,7 @@ class Level:
         self.texts = Group()
         self.gold_group = Group()
         self.doors = Group()
+        self.shop_upgrades = Group()
 
         self.save_data = save_data
         self.score = 0
@@ -52,6 +53,10 @@ class Level:
         # load doors data
         with open("data/maps/entrances_data.json", "r") as f:
             self.doors_data = load_json(f)
+
+        # load upgrades data
+        with open("upgrades.json", "r") as f:
+            self.upgrades_data = load_json(f)
 
         # load level - create game map with chunks
         self.load_level()
@@ -74,9 +79,17 @@ class Level:
         self.bullet_light = load_image("data/img/lights/bullet_light.png").convert_alpha()
         self.lava_light = load_image("data/img/lights/lava_light.png").convert_alpha()
 
+        # upgrades images
+        self.upgrades_imgs = {}
+        for image_name in self.upgrades_data.keys():
+            image = load_image(f"data/img/upgrades/{image_name}.png").convert()
+            self.upgrades_imgs[image_name] = image
+        self.randomized_upgrades = []
+        self.bought_upgrades = []
+
     def load_level(self, very_important_variable=None):
         # images
-        stone_img = load_image("data/img/stone2.png").convert()
+        stone_img = load_image("data/img/stone.png").convert()
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = load_image("data/img/platform.png").convert_alpha()
@@ -120,6 +133,15 @@ class Level:
                 self.game_map[f"{x};{y}"] = {"tiles": set(), "ladders": set(), "platforms": set(),
                                              "torches": set(), "lava": set(), "animated_tiles": set(),
                                              "bg_tiles": set(), "decorations": set(), "collidable": set()}
+
+        # shop-only
+        if self.current_map == "shop":
+            self.randomized_upgrades.clear()
+            while len(self.randomized_upgrades) < 2:
+                selected = choice(tuple(self.upgrades_data.keys()))
+                if selected not in self.randomized_upgrades and selected != "Healing":
+                    self.randomized_upgrades.append(selected)
+            self.randomized_upgrades.append("Healing")
 
         # load level data from tuple
         for y, row in enumerate(map_data):
@@ -169,6 +191,10 @@ class Level:
                     self.game_map[current_chunk]["lava"].add(Lava((x * TILE_SIZE, y * TILE_SIZE), lava_imgs))
                 elif cell == 10:
                     self.game_map[current_chunk]["lava"].add(LavaTile((x * TILE_SIZE, y * TILE_SIZE), lava_img))
+                # create upgrade icons
+                elif cell == 11:
+                    name = self.randomized_upgrades.pop()
+                    self.shop_upgrades.add(Upgrade((x * TILE_SIZE + 8, y * TILE_SIZE + 8), self.upgrades_imgs[name], name))
                 # create background tiles
                 if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
@@ -222,6 +248,7 @@ class Level:
         self.texts.empty()
         self.gold_group.empty()
         self.doors.empty()
+        self.shop_upgrades.empty()
         # reset scroll values
         self.true_scroll[0] = 0
         self.true_scroll[1] = 0
@@ -278,6 +305,19 @@ class Level:
         # draw tiles
         for tile in set.union(objects["tiles"], objects["collidable"]):
             tile.draw(self.screen, self.scroll)
+
+        # draw shop upgrades
+        for upgrade in self.shop_upgrades:
+            upgrade.draw(self.screen, self.scroll)
+            text_img = self.font.render(f"{self.upgrades_data[upgrade.type]}$", False, WHITE, BLACK)
+            text_rect = text_img.get_rect(center=(upgrade.rect.x + 24 - self.scroll[0], upgrade.rect.y - 32 - self.scroll[1]))
+            self.screen.blit(text_img, text_rect)
+            if self.player.rect.colliderect(upgrade.collision_rect):
+                if self.player.gold >= self.upgrades_data[upgrade.type] and self.key_up:
+                    self.bought_upgrades.append(upgrade.type)
+                    self.player.gold -= self.upgrades_data[upgrade.type]
+                    upgrade.kill()
+            
 
         # draw doors
         for door in self.doors:

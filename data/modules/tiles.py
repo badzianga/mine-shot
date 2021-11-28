@@ -1,4 +1,5 @@
 from random import randint
+from pygame.rect import Rect
 
 from pygame.sprite import Sprite
 from pygame.surface import Surface
@@ -23,6 +24,14 @@ class Door(Tile):
 
         self.leads_to = leads_to
         self.allowed = allowed
+
+
+class Upgrade(Tile):
+    def __init__(self, position: tuple, image: Surface, type: str):
+        super().__init__(position, image)
+
+        self.type = type
+        self.collision_rect = Rect(position[0], position[1] - 64, 64, 192)
 
 
 class AnimatedTile(Tile):

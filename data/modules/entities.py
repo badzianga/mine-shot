@@ -52,7 +52,7 @@ class Player(Sprite):
         self.key_shoot = False
         self.key_special = False
 
-        self.gold = 0
+        self.gold = 60
 
         # external groups
         self.enemies = enemies

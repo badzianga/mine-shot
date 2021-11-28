@@ -10,7 +10,7 @@ from pygame.time import get_ticks
 from .classes import Gold
 from .constants import (BLACK, BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED,
                         TILE_SIZE)
-from .guns import BigShot, Handgun, Minigun, Shotgun
+from .guns import Minigun
 from .texts import DamageText
 
 

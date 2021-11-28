@@ -2,7 +2,7 @@ from json import dump as dump_to_json
 from json import load as load_json
 from random import randint
 
-from numpy import loadtxt, uint8
+from numpy import loadtxt, short, uint8
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
@@ -37,6 +37,7 @@ class Level:
         self.save_data = save_data
         self.score = 0
         self.current_map = "level_0"  # entrance level
+        self.next_map = ""
         self.current_level = 0
         self.last_door_position = None
 
@@ -75,7 +76,7 @@ class Level:
 
     def load_level(self, very_important_variable=None):
         # images
-        stone_img = scale2x(scale2x(load_image("data/img/stone.png").convert()))
+        stone_img = load_image("data/img/stone2.png").convert()
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = load_image("data/img/platform.png").convert_alpha()
@@ -369,6 +370,8 @@ class Level:
         self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 181, 78))
 
         # check level changes
+        # I don't even know what I'm doing here
+        # it just works so I'm not going to touch it
         for door in self.doors:
             if self.player.rect.colliderect(door.rect):
                 if self.key_up and self.player.on_ground and door.allowed:
@@ -377,9 +380,10 @@ class Level:
                         for coords, name in self.doors_data["level_0"].items():
                             if name == self.current_map:
                                 coords = coords.split(';')
-                                coords = tuple(map(int, coords))
-                                break
-                    elif "level" in door.leads_to:
+                                coords = (int(coords[0]), int(coords[1]))
+                                self.current_map = "level_0"
+                                break         
+                    elif "level_" in door.leads_to:
                         level_number = int(door.leads_to[6:])
                         if level_number > 0:
                             self.current_level += 1
@@ -387,7 +391,18 @@ class Level:
                                 self.save_data["depth"] = self.current_level - 1
                             with open("save.json", "w") as f:
                                 dump_to_json(self.save_data, f, indent=4)
-                    self.current_map = door.leads_to
+                            if int(door.leads_to[6:]) > 1:
+                                self.current_map = "shop"
+                                self.next_map = door.leads_to
+                            else:
+                                self.current_map = door.leads_to
+                        else:
+                            self.current_map = door.leads_to
+                    elif "next" in door.leads_to:
+                        self.current_map = self.next_map
+                    else:
+                        self.current_map = door.leads_to
+
                     screen_fade(self.screen, self.clock, True)
                     self.restart_level()
                     self.load_level(coords)

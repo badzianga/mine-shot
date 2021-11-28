@@ -11,6 +11,10 @@
     "highscores": {
         "11;9": "level_0"
     },
+    "shop": {
+        "8;9": "player",
+        "16;9": "next_level"
+    },
     "level_1": {
         "10;10": "player",
         "9;20": "level_2"

@@ -10,7 +10,7 @@ from pygame.time import get_ticks
 from .classes import Gold
 from .constants import (BLACK, BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED,
                         TILE_SIZE)
-from .guns import Minigun
+from .guns import Shotgun
 from .texts import DamageText
 
 
@@ -61,7 +61,7 @@ class Player(Sprite):
         self.texts = texts
 
         # shooting
-        self.gun = Minigun(self.bullet_group, self.vector)
+        self.gun = Shotgun(self.bullet_group, self.vector)
 
         # apply bought upgrades
         for upgrade in upgrades:

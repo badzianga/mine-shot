@@ -34,6 +34,8 @@ screen = set_mode(SCREEN_SIZE)
 set_caption("The Mine")
 
 icon = load_image("data/img/icon.png").convert()
+background_img = load_image("data/img/menu_background.png").convert()
+    
 set_icon(icon)
 
 if settings["fullscreen"]:
@@ -347,13 +349,13 @@ def game_loop(save_data):
 def main_menu():
     menu = Menu()
 
-    screen.fill(BLACK)
+    screen.blit(background_img, (0, 0))
     menu.draw(screen)
     screen_fade(screen, clock, False)
 
     while True:
-        # clear screen
-        screen.fill(BLACK)
+        # draw background
+        screen.blit(background_img, (0, 0))
 
         # draw menu (texts)
         menu.draw(screen)
@@ -361,11 +363,13 @@ def main_menu():
         # check events
         for event in get_events():
             if event.type == QUIT:
+                screen_fade(screen, clock, True)
                 quit()
                 exit()
 
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
+                    screen_fade(screen, clock, True)
                     quit()
                     exit()
                 # select highlighted option in menu
@@ -382,21 +386,21 @@ def main_menu():
                                 dump_to_json(save_data, f, indent=4)
                         screen_fade(screen, clock, True)
                         game_loop(save_data)
-                        screen.fill(BLACK)
+                        screen.blit(background_img, (0, 0))
                         menu.draw(screen)
                         screen_fade(screen, clock, False)
                     # settings
                     elif menu.highlighted == 1:
                         screen_fade(screen, clock, True)
                         settings_menu_loop()
-                        screen.fill(BLACK)
+                        screen.blit(background_img, (0, 0))
                         menu.draw(screen)
                         screen_fade(screen, clock, False)
                     # credits
                     elif menu.highlighted == 2:
                         screen_fade(screen, clock, True)
                         credits()
-                        screen.fill(BLACK)
+                        screen.blit(background_img, (0, 0))
                         menu.draw(screen)
                         screen_fade(screen, clock, False)
                     # quit game

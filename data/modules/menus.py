@@ -8,14 +8,16 @@ class Menu:
     def __init__(self):
         # menu font
         self.font = Font("data/fonts/Pixellari.ttf", 48)
+        self.title = Font("data/fonts/Pixellari.ttf", 96).render("Mine Shot", True, WHITE)
+        self.title_rect = self.title.get_rect(center=(SCREEN_SIZE[0] // 2, 120))
 
         # texts and their positions
-        self.texts = ("Start Game", "Settings", "Credits", "Exit")
+        self.texts = ("Start", "Settings", "Credits", "Exit")
         self.positions = (
-            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 64),
-            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 128),
-            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 192),
-            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 256)
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 - 16),
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 36),
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 88),
+            (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2 + 140)
         )
 
         # highlighted menu option (by default - new game)
@@ -26,6 +28,8 @@ class Menu:
         self.key_down = False
 
     def draw(self, screen: Surface):
+        screen.blit(self.title, self.title_rect)
+
         for i, text in enumerate(self.texts):
             if i == self.highlighted:
                 text_surface = self.font.render(text, True, LIGHT_PURPLE)

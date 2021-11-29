@@ -9,8 +9,7 @@ from pygame.surface import Surface
 from pygame.time import get_ticks
 
 from .classes import Gold
-from .constants import (BLACK, BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED,
-                        TILE_SIZE)
+from .constants import (BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE)
 from .guns import Shotgun
 from .texts import DamageText
 
@@ -199,6 +198,9 @@ class Player(Sprite):
             if self.rect.colliderect(enemy.rect):
                 damage = randint(enemy.damage[0], enemy.damage[1])
                 self.get_damage(damage)
+                if isinstance(enemy, SpiderAdvanced):
+                    if randint(0, 5) < 2:
+                        self.debuffs["poison"] = 5
                 break
 
     def check_coins_collisions(self):
@@ -273,6 +275,9 @@ class Player(Sprite):
             if self.debuffs["burning"] > 0:
                 self.get_damage(2)
                 self.debuffs["burning"] -= 1
+            if self.debuffs["poison"] > 0:
+                self.get_damage(1)
+                self.debuffs["poison"] -= 1
 
         # update invincivbility
         if self.invincible:

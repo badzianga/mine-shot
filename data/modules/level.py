@@ -214,8 +214,6 @@ class Level:
             self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         elif very_important_variable is not None:
             self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
-        # elif very_important_variable is None and self.current_map == "level_0":
-            
         
         # center scroll to the player
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)

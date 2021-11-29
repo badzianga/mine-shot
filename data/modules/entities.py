@@ -15,7 +15,7 @@ from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int):
+    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
         super().__init__()
 
         # image - temporarily just a single-color surface
@@ -35,7 +35,7 @@ class Player(Sprite):
 
         # health stuff
         self.max_health = 20
-        self.health = self.max_health
+        self.health = health
         self.max_mana = 100
         self.mana = self.max_mana
         self.mana_regen = 0.1
@@ -74,6 +74,7 @@ class Player(Sprite):
                 self.mana_regen += 0.05
             elif upgrade == "ManaUp":
                 self.max_mana += 25
+                self.mana += 25
             elif upgrade == "SpeedUp":
                 self.speed += 1
                 self.jump_speed -= 1

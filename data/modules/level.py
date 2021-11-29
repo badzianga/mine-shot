@@ -85,7 +85,8 @@ class Level:
         self.randomized_upgrades = []
         self.bought_upgrades = []
 
-        self.player_gold = 0
+        self.player_gold = 100
+        self.player_health = 20
 
         # load level - create game map with chunks
         self.load_level()
@@ -97,7 +98,7 @@ class Level:
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = load_image("data/img/platform.png").convert_alpha()
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
-        spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
+        # spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
         lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
         lava_img = load_image("data/img/lava.png").convert()
         doors = {4: load_image("data/img/doors/4.png").convert_alpha(), 6: load_image("data/img/doors/6.png").convert_alpha(),
@@ -180,7 +181,7 @@ class Level:
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
                     if self.doors_data[self.current_map][f"{x};{y}"] == "player":
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
-                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
                     else:
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
@@ -205,9 +206,9 @@ class Level:
         # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
-            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
+            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         elif very_important_variable is not None:
-            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold)
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         # elif very_important_variable is None and self.current_map == "level_0":
             
         
@@ -321,9 +322,22 @@ class Level:
                         self.player.health = self.player.max_health
                     else:
                         self.bought_upgrades.append(upgrade.type)
+                        if upgrade.type == "BulletSpeedUp":
+                            self.player.gun.cooldown = int(self.player.gun.cooldown * 0.8)
+                        elif upgrade.type == "HealthUp":
+                            self.player.max_health += 10
+                            self.player.health += 10
+                        elif upgrade.type == "ManaRegen":
+                            self.player.mana_regen += 0.05
+                        elif upgrade.type == "ManaUp":
+                            self.player.max_mana += 25
+                        elif upgrade.type == "SpeedUp":
+                            self.player.speed += 1
+                            self.player.jump_speed += -1
+                        elif upgrade.type == "Strength":
+                            self.player.gun.damage = (int(self.player.gun.damage[0] * 1.5), int(self.player.gun.damage[1] * 1.3))
                     self.player.gold -= self.upgrades_data[upgrade.type]
                     upgrade.kill()
-            
 
         # draw doors
         for door in self.doors:
@@ -450,6 +464,7 @@ class Level:
                         self.current_map = door.leads_to
 
                     self.player_gold = self.player.gold
+                    self.player_health = self.player.health
                     screen_fade(self.screen, self.clock, True)
                     self.restart_level()
                     self.load_level(coords)

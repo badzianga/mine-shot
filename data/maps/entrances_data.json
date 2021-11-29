@@ -2,13 +2,13 @@
     "level_0": {
         "11;16": "player",
         "31;14": "level_1",
-        "9;9": "highscores",
-        "16;16": "achievements"
-    },
-    "achievements": {
-        "8;9": "level_0"
+        "9;9": "achievements",
+        "16;16": "highscores"
     },
     "highscores": {
+        "8;9": "level_0"
+    },
+    "achievements": {
         "11;9": "level_0"
     },
     "shop": {

@@ -359,6 +359,13 @@ class Level:
         for platform in objects["platforms"]:
             platform.draw(self.screen, self.scroll)
 
+        # draw high scores
+        if self.current_map == "highscores":
+            for i, score in enumerate(sorted(self.save_data["highscores"], reverse=True)):
+                text_surf = self.font.render(f"{i + 1}. {score}", False, WHITE)
+                text_rect = text_surf.get_rect(topleft=(12 * TILE_SIZE - self.scroll[0], 7 * TILE_SIZE - 32 + i * 40 - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+
         # update and draw animated tiles
         for tile in objects["animated_tiles"]:
             tile.update(self.screen, self.scroll)

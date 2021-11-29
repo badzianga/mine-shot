@@ -209,6 +209,8 @@ class Player(Sprite):
                 self.gold += gold.amount
                 self.texts.add(DamageText(self.rect.midtop, f"{gold.amount}$", GOLD))
                 gold.kill()
+                return gold.amount * 10
+        return
 
     def draw(self, screen: Surface, scroll: set):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
@@ -227,7 +229,7 @@ class Player(Sprite):
         self.check_ladder_collisions(objects["ladders"])
         self.check_platform_collisions(objects["platforms"])
         self.check_lava_collisions(objects["lava"])
-        self.check_coins_collisions()
+        score = self.check_coins_collisions()
 
         # update shoot cooldown
         if self.gun.cooldown > 0:
@@ -297,6 +299,8 @@ class Player(Sprite):
 
         # draw player
         self.draw(screen, scroll)
+
+        return score
 
 
 class EnemyBase(Sprite):

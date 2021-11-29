@@ -121,7 +121,7 @@ def settings_menu_loop():
                         settings["fullscreen"] = not settings["fullscreen"]
                         toggle_fullscreen()
                     elif menu.highlighted == 3:
-                        save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                        save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": []}
                         with open("save.json", "w") as f:
                             dump_to_json(save_data, f, indent=4)
                             return True
@@ -250,6 +250,14 @@ def game_loop(save_data):
         # if died, return to main menu
         else:
             level.save_data["deaths"] += 1
+            level.score += level.current_level * 100
+            if len(level.save_data["highscores"]) < 5:
+                level.save_data["highscores"].append(level.score)
+            else:
+                if level.score > min(level.save_data["highscores"]):
+                    level.save_data["highscores"].remove(min(level.save_data["highscores"]))
+                    level.save_data["highscores"].append(level.score)
+            
             with open("save.json", "w") as f:
                     dump_to_json(level.save_data, f, indent=4)
             return
@@ -376,12 +384,11 @@ def main_menu():
                 if event.key in (K_SPACE, K_z):
                     # start game
                     if menu.highlighted == 0:
-                        # create save file if not exists
                         if "save.json" in listdir():
                             with open("save.json", "r") as f:
                                 save_data = load_json(f)
-                        else:
-                            save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": {}}
+                        else:  # create save file if not exists
+                            save_data = {"kills": 0, "deaths": 0, "depth": 0, "highscores": []}
                             with open("save.json", "w") as f:
                                 dump_to_json(save_data, f, indent=4)
                         screen_fade(screen, clock, True)

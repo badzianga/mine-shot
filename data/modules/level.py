@@ -391,7 +391,9 @@ class Level:
                 enemy.update(self.screen, self.scroll, objects["collidable"], objects["platforms"], self.player.rect)
 
         # update and draw player
-        self.player.update(self.screen, self.scroll, objects)
+        score = self.player.update(self.screen, self.scroll, objects)
+        if score is not None:
+            self.score += score
 
         # update and draw lava
         for lava in objects["lava"]:

@@ -11,7 +11,7 @@ from .classes import Bullet
 
 class Shotgun:
     def __init__(self, bullet_group: Group, player_vector: Vector2):
-        self.damage = (1, 5)
+        self.damage = (1, 3)
         self.cooldown = 0
         self.max_cooldowns = [45, 60]
 

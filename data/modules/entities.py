@@ -2,6 +2,7 @@ from math import atan2, cos, floor, radians, sin
 from random import choice, randint
 
 from pygame.math import Vector2
+from pygame.transform import flip
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
@@ -337,7 +338,7 @@ class EnemyBase(Sprite):
             if self.gold_amount > 0:
                 self.gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
             self.kill()
-            return
+            return self.score_amount
 
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
@@ -366,13 +367,34 @@ class EnemyBase(Sprite):
 
 
 class Slime(EnemyBase):
-    def __init__(self, position: tuple, gold_group: Group):
+    def __init__(self, position: tuple, images: tuple, gold_group: Group):
         super().__init__(position, 10, (1, 3), (1, 3), (0, 2), gold_group)
-        self.image.fill(GREEN)
+        self.animation = images
+        self.frame_index = 0
+        self.animation_length = len(images)
+        self.image = self.animation[self.frame_index]
+        self.rect = Rect(position[0], position[1], 48, 48)
+        self.flip = False
+
+        self.score_amount = 30
 
         self.vector.x = self.speed * choice((-1, 1))
 
+    def draw(self, screen: Surface, scroll: list):
+        screen.blit(self.image, (self.rect.x - 8 - scroll[0], self.rect.y - 16 - scroll[1]))
+
     def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+        if self.vector.x > 0:
+            self.flip = True
+        elif self.vector.x < 0:
+            self.flip = False
+        # update animation frame
+        self.frame_index += 0.2
+        if self.frame_index >= self.animation_length:
+            self.frame_index = 0
+        # set new frame to the image and flip it if necessary
+        self.image = flip(self.animation[floor(self.frame_index)], self.flip, False)
+
         if not self.idling:
             # update x position and check for horizontal collisions
             self.rect.x += self.vector.x
@@ -422,11 +444,13 @@ class Spider(EnemyBase):
         self.cooldowns = {"idle": 0.2, "run": 0.4}
         self.image = self.animations[self.action][self.frame_index]
 
+        self.score_amount = 60
+
         self.vector.x = self.speed * choice((-1, 1))
 
         self.rect = self.image.get_rect(topleft=position)
 
-    def update_action(self, new_action):
+    def update_action(self, new_action: str):
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0
@@ -489,11 +513,14 @@ class SpiderAdvanced(EnemyBase):
         self.action = "idle"
         self.cooldowns = {"idle": 0.2, "run": 0.4}
         self.image = self.animations[self.action][self.frame_index]
+        self.flip = False
+
+        self.score_amount = 120
 
         self.rect = self.image.get_rect(topleft=position)
         self.vision_rect = Rect(0, 0, 640, 240)
 
-    def update_action(self, new_action):
+    def update_action(self, new_action: str):
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0
@@ -544,12 +571,16 @@ class SpiderAdvanced(EnemyBase):
         # TEMP: enemy vision
         # draw_rect(screen, GOLD, (self.vision_rect.left - scroll[0], self.vision_rect.top - scroll[1], self.vision_rect.width, self.vision_rect.height))
 
+        if self.vector.x < 0:
+            self.flip = False
+        elif self.vector.x > 0:
+            self.flip = True
         # update animation frame
         self.frame_index += self.cooldowns[self.action]
         if self.frame_index >= len(self.animations[self.action]):
             self.frame_index = 0
         # set new frame to the image and flip it if necessary
-        self.image = self.animations[self.action][floor(self.frame_index)]
+        self.image = flip(self.animations[self.action][floor(self.frame_index)], self.flip, False)
 
         # blinking if damaged
         if self.blinking:
@@ -566,15 +597,20 @@ class SpiderAdvanced(EnemyBase):
 
 
 class Bat(EnemyBase):
-    def __init__(self, position: tuple, gold_group: Group):
+    def __init__(self, position: tuple, images: tuple, gold_group: Group):
         super().__init__(position, 10, (1, 3), (4, 6), (0, 4), gold_group)
 
-        self.image = Surface((48, 48))
-        self.image.fill(BLACK)
-        self.rect = self.image.get_rect(topleft=position)
+        self.animations = {"idle": images[0], "fly": images[1]}
+        self.frame_index = 0
+        self.action = "idle"
+        self.cooldowns = {"idle": 0.01, "fly": 0.25}
+        self.image = self.animations[self.action][self.frame_index]
+        self.flip = False
 
         self.vision_rect = Rect(0, 0, 640, 360)
         self.spotted_player = False
+
+        self.score_amount = 120
 
         self.move_count = 30
 
@@ -618,33 +654,61 @@ class Bat(EnemyBase):
                         self.vector.y = round(self.speed * sin(radians(random_angle)))
                         break
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
-        if self.move_count == 0:
-            random_angle = randint(1, 360)
-            self.vector.x = round(self.speed * cos(radians(random_angle)))
-            self.vector.y = round(self.speed * sin(radians(random_angle)))
-            self.idling = True
-            self.idling_counter = randint(30, 50)
-            self.move_count = randint(30, 50)
-        
-        if self.idling:
-            self.idling_counter -= 1
-            if self.idling_counter <= 0:
-                self.idling = False
-        else:
-            self.move_count -= 1   
-            # update x position and check for horizontal collisions
-            self.rect.x += self.vector.x
-            self.check_horizontal_collisions(tiles)
+    def get_damage(self, damage: int):
+        self.update_action("fly")
+        self.health -= damage
+        self.blinking = 30
+        if self.health <= 0:
+            if self.gold_amount > 0:
+                self.gold_group.add(Gold((randint(self.rect.left, self.rect.right), self.rect.bottom), self.gold_amount))
+            self.kill()
+            return self.score_amount
 
-            # update y position and check collisions with tiles
-            self.rect.y += self.vector.y
-            self.check_vertical_collisions(tiles)
+    def update_action(self, new_action: str):
+        if new_action != self.action:
+            self.action = new_action
+            self.frame_index = 0
+
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+        if self.action == "fly":
+            if self.vector.x > 0:
+                self.flip = True
+            elif self.vector.x < 0:
+                self.flip = False
+            # update animation frame
+            self.frame_index += 0.2
+            if self.frame_index >= len(self.animations[self.action]):
+                self.frame_index = 0
+            # set new frame to the image and flip it if necessary
+            self.image = flip(self.animations[self.action][floor(self.frame_index)], self.flip, False)
+
+            if self.move_count == 0:
+                random_angle = randint(1, 360)
+                self.vector.x = round(self.speed * cos(radians(random_angle)))
+                self.vector.y = round(self.speed * sin(radians(random_angle)))
+                self.idling = True
+                self.idling_counter = randint(30, 50)
+                self.move_count = randint(30, 50)
+            
+            if self.idling:
+                self.idling_counter -= 1
+                if self.idling_counter <= 0:
+                    self.idling = False
+            else:
+                self.move_count -= 1   
+                # update x position and check for horizontal collisions
+                self.rect.x += self.vector.x
+                self.check_horizontal_collisions(tiles)
+
+                # update y position and check collisions with tiles
+                self.rect.y += self.vector.y
+                self.check_vertical_collisions(tiles)
 
         # update enemy vision
         self.vision_rect.center = self.rect.center
         # if enemy "sees" the player
         if self.vision_rect.colliderect(player_rect):
+            self.update_action("fly")
             self.idling = False
             self.spotted_player = True
             self.move_count = 10

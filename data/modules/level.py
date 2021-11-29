@@ -1,4 +1,4 @@
-from json import dump as dump_to_json
+from json import dump as dump_to_json, load
 from json import load as load_json
 from random import choice, randint
 
@@ -14,7 +14,7 @@ from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
 from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
-from .entities import Player
+from .entities import Bat, Player, Slime, Spider, SpiderAdvanced
 from .functions import load_images, screen_fade
 from .tiles import Door, Lava, LavaTile, Tile, Torch, Upgrade
 
@@ -87,6 +87,7 @@ class Level:
 
         self.player_gold = 0
         self.player_health = 20
+        self.score = 0
 
         # load level - create game map with chunks
         self.load_level()
@@ -98,7 +99,10 @@ class Level:
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platform_img = load_image("data/img/platform.png").convert_alpha()
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
-        # spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
+        small_spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
+        big_spider_imgs = (load_images("data/img/spider_big/idle", "spider_", 1, 1), load_images("data/img/spider_big/run", "spider_", 1, 1))
+        slimes_imgs = tuple([load_images(f"data/img/slimes/{color}", "slime_", 1, 1) for color in ("black", "blue", "green", "red", "yellow")])
+        bat_imgs = ((load_image("data/img/bat.png").convert_alpha(), ), load_images("data/img/bat", "bat_", 1, 1))
         lava_imgs = load_images("data/img/lava", "Lava_", 1, 1)
         lava_img = load_image("data/img/lava.png").convert()
         doors = {4: load_image("data/img/doors/4.png").convert_alpha(), 6: load_image("data/img/doors/6.png").convert_alpha(),
@@ -199,6 +203,7 @@ class Level:
                 elif cell == 11:
                     name = self.randomized_upgrades.pop()
                     self.shop_upgrades.add(Upgrade((x * TILE_SIZE + 8, y * TILE_SIZE + 8), self.upgrades_imgs[name], name))
+
                 # create background tiles
                 if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
@@ -371,7 +376,9 @@ class Level:
         # update and draw bullets
         for bullet in self.bullet_group.copy():
             if active_rect.colliderect(bullet.rect):
-                bullet.update(self.screen, self.scroll, objects["collidable"], self.enemies, self.texts)
+                score = bullet.update(self.screen, self.scroll, objects["collidable"], self.enemies, self.texts)
+                if score is not None:
+                    self.score += score
             else:
                 bullet.kill()
 

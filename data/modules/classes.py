@@ -6,7 +6,7 @@ from pygame.image import load
 from pygame.math import Vector2
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
-from pygame.transform import scale
+from pygame.transform import scale, scale2x
 
 from .constants import GRAVITY, SCREEN_SIZE, WHITE
 from .texts import DamageText
@@ -107,10 +107,10 @@ class Bullet(Sprite):
         # check for collisions with enemies
         for enemy in enemies:
             if self.rect.colliderect(enemy.rect):
-                enemy.get_damage(self.damage)
+                score = enemy.get_damage(self.damage)
                 texts.add(DamageText((randint(enemy.rect.left, enemy.rect.right), randint(enemy.rect.top - 16, enemy.rect.top + 16)), str(self.damage), WHITE))
                 self.kill()
-                return
+                return score
 
         # draw bullet
         self.draw(screen, scroll)

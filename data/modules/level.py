@@ -85,7 +85,7 @@ class Level:
         self.randomized_upgrades = []
         self.bought_upgrades = []
 
-        self.player_gold = 100
+        self.player_gold = 0
         self.player_health = 20
 
         # load level - create game map with chunks
@@ -271,10 +271,11 @@ class Level:
             self.true_scroll[1] += 6.5
 
         # earthquake
-        if self.screen_shake > 0:
-            self.earthquake()  # apply earthquake
-        elif randint(1, 1000) == 1:  # 0.1% chance for earthquake
-            self.screen_shake = randint(120, 180)  # 2-3s of earthquake
+        if self.current_level > 5:
+            if self.screen_shake > 0:
+                self.earthquake()  # apply earthquake
+            elif randint(1, 1000) == 1:  # 0.1% chance for earthquake
+                self.screen_shake = randint(120, 180)  # 2-3s of earthquake
 
         # update scroll values
         self.update_scroll()

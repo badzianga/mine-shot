@@ -7,11 +7,12 @@ from os import listdir
 from PIL.Image import frombytes
 from PIL.ImageFilter import GaussianBlur
 from pygame import init, quit
-from pygame.display import set_caption, set_mode, toggle_fullscreen
+from pygame.display import set_caption, set_mode, toggle_fullscreen, set_icon
 from pygame.display import update as update_display
 from pygame.event import get as get_events
 from pygame.font import Font
 from pygame.image import fromstring, tostring
+from pygame.image import load as load_image
 from pygame.locals import (K_DOWN, K_ESCAPE, K_F10, K_F11, K_F12, K_LEFT,
                            K_RIGHT, K_SPACE, K_UP, KEYDOWN, KEYUP, QUIT, K_c,
                            K_x, K_z)
@@ -31,6 +32,9 @@ with open("settings.json", "r") as f:
 
 screen = set_mode(SCREEN_SIZE)
 set_caption("The Mine")
+
+icon = load_image("data/img/icon.png").convert()
+set_icon(icon)
 
 if settings["fullscreen"]:
     toggle_fullscreen()

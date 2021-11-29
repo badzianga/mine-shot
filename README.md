@@ -8,5 +8,4 @@ Fonts:
 
 Images:
  - graphics design - Piotr Szybiak
- - health bar - Adwit Rahman
  - gold - [Bonsaiheldin](https://opengameart.org/content/gold-treasure-icons-16x16)

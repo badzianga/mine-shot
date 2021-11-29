@@ -413,7 +413,7 @@ class Level:
         self.health_bar.draw(self.screen, self.player.health, self.player.max_health)
         self.mana_bar.draw(self.screen, self.player.mana, self.player.max_mana)
         gold_amount = self.font.render(f"$: {self.player.gold}", False, WHITE)
-        self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 181, 78))
+        self.screen.blit(gold_amount, (SCREEN_SIZE[0] - 200, 88))
 
         # check level changes
         # I don't even know what I'm doing here

@@ -6,7 +6,7 @@ from pygame.image import load
 from pygame.math import Vector2
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
-from pygame.transform import scale2x
+from pygame.transform import scale
 
 from .constants import GRAVITY, SCREEN_SIZE, WHITE
 from .texts import DamageText
@@ -14,38 +14,34 @@ from .texts import DamageText
 
 class HealthBar:
     def __init__(self):
-        self.health_border = scale2x(load("data/img/bars/bar_border.png").convert_alpha())
-        self.empty_bar = scale2x(load("data/img/bars/empty_bar.png").convert_alpha())
-        self.health_bar = scale2x(load("data/img/bars/health_bar.png").convert_alpha())
+        self.health_border = scale(load("data/img/bars/HealthBar.png").convert_alpha(), (192, 36))
+        self.health_bar = scale(load("data/img/bars/HealthBar2.png").convert_alpha(), (153, 21))
         self.size = self.health_bar.get_size()
 
     def draw(self, screen: Surface, health: int, max_health: int):
         # draw border
-        screen.blit(self.health_border, (SCREEN_SIZE[0] - 185, 18))  # border
-        screen.blit(self.empty_bar, (SCREEN_SIZE[0] - 181, 20))
+        screen.blit(self.health_border, (SCREEN_SIZE[0] - 200, 8))  # border
         # draw current health
         screen.blit(
             self.health_bar,
-            (SCREEN_SIZE[0] - 181, 20),
+            (SCREEN_SIZE[0] - 164, 16),
             (0, 0, int(self.size[0] * (health / max_health)), self.size[1])  # width of the bar
         )
 
 
 class ManaBar:
     def __init__(self):
-        self.mana_border = scale2x(load("data/img/bars/bar_border.png").convert_alpha())
-        self.empty_bar = scale2x(load("data/img/bars/empty_bar.png").convert_alpha())
-        self.mana_bar = scale2x(load("data/img/bars/mana_bar.png").convert_alpha())
+        self.mana_border = scale(load("data/img/bars/ManaBar.png").convert_alpha(), (192, 36))
+        self.mana_bar = scale(load("data/img/bars/ManaBar2.png").convert_alpha(), (153, 21))
         self.size = self.mana_bar.get_size()
 
     def draw(self, screen: Surface, mana: float, max_mana: int):
         # draw border
-        screen.blit(self.mana_border, (SCREEN_SIZE[0] - 185, 48))  # border
-        screen.blit(self.empty_bar, (SCREEN_SIZE[0] - 181, 50))
+        screen.blit(self.mana_border, (SCREEN_SIZE[0] - 200, 48))  # border
         # draw current mana
         screen.blit(
             self.mana_bar,
-            (SCREEN_SIZE[0] - 181, 50),
+            (SCREEN_SIZE[0] - 164, 56),
             (0, 0, int(self.size[0] * (mana / max_mana)), self.size[1])  # width of the bar
         )
 

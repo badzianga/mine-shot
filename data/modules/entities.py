@@ -19,16 +19,17 @@ class Player(Sprite):
     def __init__(self, position: tuple, images: tuple, selected_gun: str, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
         super().__init__()
 
-        self.animations = {"idle": [], "run": []}
+        self.animations = {"idle": [], "run": [], "climb": images[2], "jump": []}
         for image in images[0]:
             self.animations["idle"].append(smoothscale(image, (image.get_width() * 1.5, image.get_height() * 1.5)))
         for image in images[1]:
             self.animations["run"].append(smoothscale(image, (image.get_width() * 1.5, image.get_height() * 1.5)))
         self.animations["idle"] = tuple(self.animations["idle"])
         self.animations["run"] = tuple(self.animations["run"])
+        self.animations["jump"].append(smoothscale(images[3], (images[3].get_width() * 1.5, images[3].get_height() * 1.5)))
         self.frame_index = 0
         self.action = "idle"
-        self.cooldowns = {"idle": 0.15, "run": 0.30}
+        self.cooldowns = {"idle": 0.15, "run": 0.3, "climb": 0.2, "jump": 0.01}
         self.image = self.animations[self.action][self.frame_index]
         self.flip = False
 
@@ -295,6 +296,11 @@ class Player(Sprite):
         # set max falling speed
         if self.vector.y > 18:
             self.vector.y = 18
+        print(self.image.get_height())
+        if not self.climbing and not self.on_ground:
+            self.update_action("jump")
+        elif self.climbing:
+            self.update_action("climb")
 
         # check for collisions with enemies
         if not self.invincible:
@@ -315,7 +321,8 @@ class Player(Sprite):
                 self.invincible = False
 
         # change animation frame
-        self.frame_index += self.cooldowns[self.action]
+        if not self.climbing or (self.climbing and self.up or self.down):
+            self.frame_index += self.cooldowns[self.action]
         if self.frame_index >= len(self.animations[self.action]):
             self.frame_index = 0
         # set new frame to the image and flip it if necessary

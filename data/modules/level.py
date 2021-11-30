@@ -100,7 +100,7 @@ class Level:
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platforms_imgs = load_images("data/img/platforms/", "platform_", 1, 1)
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
-        player_images = load_images("data/img/player/idle", "idle_", 1, 1), load_images("data/img/player/run", "run_", 1, 1)
+        player_images = (load_images("data/img/player/idle", "idle_", 1, 1), load_images("data/img/player/run", "run_", 1, 1), load_images("data/img/player/climb", "climb_", 1, 1), load_image("data/img/player/jump.png").convert_alpha())
         small_spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
         big_spider_imgs = (load_images("data/img/spider_big/idle", "spider_", 1, 1), load_images("data/img/spider_big/run", "spider_", 1, 1))
         slimes_imgs = tuple([load_images(f"data/img/slimes/{color}", "slime_", 1, 1) for color in ("black", "blue", "green", "red", "yellow")])

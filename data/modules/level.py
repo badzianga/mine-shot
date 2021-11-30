@@ -86,6 +86,7 @@ class Level:
         self.bought_upgrades = []
 
         self.player_gold = 0
+        self.selected_gun = "handgun"
         self.player_health = 20
         self.score = 0
 
@@ -108,9 +109,11 @@ class Level:
         lava_img = load_image("data/img/lava.png").convert()
         doors = {4: load_image("data/img/doors/4.png").convert_alpha(), 6: load_image("data/img/doors/6.png").convert_alpha(),
                  7: load_image("data/img/doors/7.png").convert_alpha(), 8: load_image("data/img/doors/8.png").convert_alpha()}
+        decorations_imgs = load_images("data/img/decorations", "Deco_", 1, 1)
 
-        # load map
+        # load map and decorations
         map_data = loadtxt(f"data/maps/{self.current_map}.csv", dtype=uint8, delimiter=',')
+        decorations_data = loadtxt(f"data/maps/{self.current_map}_decorations.csv", dtype=uint8, delimiter=',')
         
         # update level_0
         if self.current_map == "level_0":
@@ -152,7 +155,7 @@ class Level:
                     self.randomized_upgrades.append(selected)
             self.randomized_upgrades.append("Healing")
 
-        # load level data from tuple
+        # load level data
         for y, row in enumerate(map_data):
             current_chunk_y = y // CHUNK_SIZE
             for x, cell in enumerate(row):
@@ -188,7 +191,7 @@ class Level:
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
                     if self.doors_data[self.current_map][f"{x};{y}"] == "player":
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
-                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
                     else:
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
@@ -211,12 +214,22 @@ class Level:
                 if cell != 1:
                     self.game_map[current_chunk]["bg_tiles"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), bg_stone_img))
 
+        # load decorations data
+        for y, row in enumerate(decorations_data):
+            current_chunk_y = y // CHUNK_SIZE
+            for x, cell in enumerate(row):
+                current_chunk_x = x // CHUNK_SIZE
+                current_chunk = f"{current_chunk_x};{current_chunk_y}"  # calculate coordinates of chunk
+
+                if cell != 0:
+                    self.game_map[current_chunk]["decorations"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), decorations_imgs[cell - 1]))
+
         # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
-            self.player = Player(door_pos.midbottom, player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player(door_pos.midbottom, player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         elif very_important_variable is not None:
-            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         
         # center scroll to the player
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)

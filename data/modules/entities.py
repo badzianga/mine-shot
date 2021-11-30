@@ -2,20 +2,21 @@ from math import atan2, cos, floor, radians, sin
 from random import choice, randint
 
 from pygame.math import Vector2
-from pygame.transform import flip, smoothscale
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
 from pygame.time import get_ticks
+from pygame.transform import flip, smoothscale
 
 from .classes import Gold
-from .constants import (BLUE, GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE)
-from .guns import Shotgun
+from .constants import GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE
+from .functions import load_images
+from .guns import BigShot, Handgun, Minigun, Shotgun
 from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple, images: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
+    def __init__(self, position: tuple, images: tuple, selected_gun: str, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
         super().__init__()
 
         self.animations = {"idle": [], "run": []}
@@ -69,7 +70,15 @@ class Player(Sprite):
         self.texts = texts
 
         # shooting
-        self.gun = Shotgun(self.bullet_group, self.vector)
+        if selected_gun == "handgun":
+            self.gun = Handgun(self.bullet_group, self.vector)
+            # self.gun_images = load_images("data/img/guns/handgun")
+        elif selected_gun == "shotgun":
+            self.gun = Shotgun(self.bullet_group, self.vector)
+        elif selected_gun == "minigun":
+            self.gun = Minigun(self.bullet_group, self.vector)
+        elif selected_gun == "bigshot":
+            self.gun = BigShot(self.bullet_group, self.vector)
 
         # apply bought upgrades
         for upgrade in upgrades:
@@ -167,7 +176,7 @@ class Player(Sprite):
             self.climbing = False
 
     def check_platform_collisions(self, platforms: set):
-        collision_rect = Rect(self.rect.x, self.rect.y + TILE_SIZE - 1, self.rect.width, 1)
+        collision_rect = Rect(self.rect.x, self.rect.bottom, self.rect.width, 8)
         # check 'feet' (collision_rect) colliding with platform
         for platform in platforms:
             if platform.rect.colliderect(collision_rect):
@@ -181,7 +190,7 @@ class Player(Sprite):
                     # jump from the platform
                     if self.down and self.jump:
                         self.on_ground = False
-                        self.vector.y += GRAVITY * 2
+                        self.vector.y += 8.5
 
                     break
 

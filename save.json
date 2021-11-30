@@ -1,6 +1,8 @@
 {
     "kills": 0,
-    "deaths": 0,
-    "depth": 0,
-    "highscores": []
+    "deaths": 1,
+    "depth": 5,
+    "highscores": [
+        600
+    ]
 }

@@ -86,7 +86,7 @@ class Level:
         self.bought_upgrades = []
 
         self.player_gold = 0
-        self.selected_gun = "handgun"
+        self.selected_gun = "shotgun"
         self.player_health = 20
         self.score = 0
 

@@ -3,16 +3,17 @@ from pygame.surface import Surface
 from pygame.time import Clock
 from .constants import BLACK, FPS, SCREEN_SIZE
 from pygame.display import update as update_display
-
-import pygame
-
+from pygame.image import load
+from pygame.transform import smoothscale, scale2x
 
 def load_images(path: str, filename: str, scale=1, start_counter=0) -> tuple:
     frames = []
     for i in range(start_counter, len(listdir(path)) + start_counter):
-        frame = pygame.image.load(f"{path}/{filename}{i}.png").convert_alpha()
+        frame = load(f"{path}/{filename}{i}.png").convert_alpha()
         if scale == 2:
-            frame = pygame.transform.scale2x(frame)
+            frame = scale2x(frame)
+        elif scale != 1:
+            frame = smoothscale(frame, (frame.get_width() * scale, frame.get_height() * scale))
         frames.append(frame)
     return tuple(frames)
 

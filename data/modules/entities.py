@@ -11,7 +11,7 @@ from pygame.transform import flip, smoothscale
 from .classes import Gold
 from .constants import GOLD, GRAVITY, GREEN, ORANGE, RED, TILE_SIZE
 from .functions import load_images
-from .guns import BigShot, Handgun, Minigun, Shotgun
+from .guns import Handgun, Minigun, Shotgun
 from .texts import DamageText
 
 
@@ -73,13 +73,13 @@ class Player(Sprite):
         # shooting
         if selected_gun == "handgun":
             self.gun = Handgun(self.bullet_group, self.vector)
-            # self.gun_images = load_images("data/img/guns/handgun")
+            self.gun_images = load_images("data/img/guns/handgun", "handgun_", 1.5, 1)
         elif selected_gun == "shotgun":
             self.gun = Shotgun(self.bullet_group, self.vector)
+            self.gun_images = load_images("data/img/guns/shotgun", "shotgun_", 1.5, 1)
         elif selected_gun == "minigun":
             self.gun = Minigun(self.bullet_group, self.vector)
-        elif selected_gun == "bigshot":
-            self.gun = BigShot(self.bullet_group, self.vector)
+            self.gun_images = load_images("data/img/guns/minigun", "minigun_", 1.5, 1)
 
         # apply bought upgrades
         for upgrade in upgrades:
@@ -158,7 +158,7 @@ class Player(Sprite):
                 # center player on the ladder
                 if self.climbing:
                     self.vector.y = 0
-                    self.rect.centerx = ladder.rect.centerx
+                    self.rect.centerx = ladder.rect.centerx - 4
 
                 # go up
                 if self.up:
@@ -296,7 +296,7 @@ class Player(Sprite):
         # set max falling speed
         if self.vector.y > 18:
             self.vector.y = 18
-        print(self.image.get_height())
+
         if not self.climbing and not self.on_ground:
             self.update_action("jump")
         elif self.climbing:
@@ -340,11 +340,40 @@ class Player(Sprite):
         # draw player
         self.draw(screen, scroll)
 
+        # draw gun
+        if not self.climbing:
+            if not self.on_ground:
+                offset_y = -8
+            else:
+                offset_y = 0
+
+            if not self.up and not self.down:
+                if not self.flip:
+                    screen.blit(self.gun_images[0], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
+                else:
+                    image = flip(self.gun_images[0], True, False)
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    screen.blit(image, image_rect)
+            elif self.up:
+                if not self.flip:
+                    screen.blit(self.gun_images[1], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
+                else:
+                    image = flip(self.gun_images[1], True, False)
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    screen.blit(image, image_rect)
+            elif self.down:
+                if not self.flip:
+                    screen.blit(self.gun_images[2], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
+                else:
+                    image = flip(self.gun_images[2], True, False)
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    screen.blit(image, image_rect)
+
         return score
 
 
 class EnemyBase(Sprite):
-    def __init__(self, position, hp, damage, speed, gold, gold_group: Group):
+    def __init__(self, position: tuple, hp: int, damage: tuple, speed: tuple, gold: tuple, gold_group: Group):
         super().__init__()
 
         self.gold_group = gold_group

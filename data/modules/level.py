@@ -39,7 +39,7 @@ class Level:
 
         self.save_data = save_data
         self.score = 0
-        self.current_map = "level_1"  # entrance level
+        self.current_map = "level_0"  # entrance level
         self.next_map = ""
         self.current_level = 0
         self.last_door_position = None

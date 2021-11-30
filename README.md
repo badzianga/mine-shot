@@ -8,4 +8,3 @@ Fonts:
 
 Images:
  - graphics design - Piotr Szybiak
- - gold - [Bonsaiheldin](https://opengameart.org/content/gold-treasure-icons-16x16)

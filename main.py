@@ -50,10 +50,11 @@ fps_font = Font("data/fonts/Pixellari.ttf", 40)
 # Credits ------------------------------------------------------------------- #
 def credits():
     # texts and their positions
-    texts = ("Created by: Badzianga", "Graphics design: Piotr Szybiak")
+    texts = ("Created by: Badzianga", "Graphics design: Piotr Szybiak", "Font: Zacchary Dempsey-Plante")
     positions = (
         (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4),
-        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64)
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 64),
+        (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 4 + 128)
     )
 
     screen.fill(BLACK)

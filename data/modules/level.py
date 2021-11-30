@@ -16,7 +16,7 @@ from .classes import HealthBar, ManaBar
 from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Bat, Player, Slime, Spider, SpiderAdvanced
 from .functions import load_images, screen_fade
-from .tiles import Door, Lava, LavaTile, Tile, Torch, Upgrade
+from .tiles import Door, Lava, LavaTile, Tile, Torch, Upgrade, Platform
 
 
 class Level:
@@ -97,7 +97,7 @@ class Level:
         stone_img = load_image("data/img/stone.png").convert()
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
-        platform_img = load_image("data/img/platform.png").convert_alpha()
+        platforms_imgs = load_images("data/img/platforms/", "platform_", 1, 1)
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
         small_spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
         big_spider_imgs = (load_images("data/img/spider_big/idle", "spider_", 1, 1), load_images("data/img/spider_big/run", "spider_", 1, 1))
@@ -179,7 +179,9 @@ class Level:
                     self.game_map[current_chunk]["ladders"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), ladder_img))
                 # create platforms
                 elif cell == 3:
-                    self.game_map[current_chunk]["platforms"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), platform_img))
+                    self.game_map[current_chunk]["platforms"].add(Platform((x * TILE_SIZE, y * TILE_SIZE), platforms_imgs[0]))
+                elif cell in (12, 13, 14):
+                    self.game_map[current_chunk]["platforms"].add(Platform((x * TILE_SIZE, y * TILE_SIZE), platforms_imgs[cell - 11]))
                 # create doors
                 elif cell in (4, 6):
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
@@ -361,9 +363,12 @@ class Level:
 
         # draw high scores
         if self.current_map == "highscores":
+            text_surf = self.font.render("Highscores", False, WHITE)
+            text_rect = text_surf.get_rect(center=(8 * TILE_SIZE + 32 - self.scroll[0], 8 * TILE_SIZE - self.scroll[1]))
+            self.screen.blit(text_surf, text_rect)
             for i, score in enumerate(sorted(self.save_data["highscores"], reverse=True)):
                 text_surf = self.font.render(f"{i + 1}. {score}", False, WHITE)
-                text_rect = text_surf.get_rect(topleft=(12 * TILE_SIZE - self.scroll[0], 7 * TILE_SIZE - 32 + i * 40 - self.scroll[1]))
+                text_rect = text_surf.get_rect(center=(13 * TILE_SIZE - self.scroll[0], 7 * TILE_SIZE - 32 + i * 40 - self.scroll[1]))
                 self.screen.blit(text_surf, text_rect)
 
         # update and draw animated tiles

@@ -18,6 +18,12 @@ class Tile(Sprite):
         screen.blit(self.image, (self.rect.x - scroll[0], self.rect.y - scroll[1]))
 
 
+class Platform(Tile):
+    def __init__(self, position: tuple, image: Surface):
+        super().__init__(position, image)
+        self.rect = Rect(position[0], position[1], 64, 8)
+
+
 class Door(Tile):
     def __init__(self, position: tuple, image: Surface, leads_to: str, allowed: bool):
         super().__init__(position, image)

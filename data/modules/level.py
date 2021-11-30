@@ -430,6 +430,7 @@ class Level:
                 score = bullet.update(self.screen, self.scroll, objects["collidable"], self.enemies, self.texts)
                 if score is not None:
                     self.score += score
+                    self.save_data["kills"] += 1
             else:
                 bullet.kill()
 

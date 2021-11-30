@@ -1,12 +1,11 @@
 from random import randint
 from math import sin, cos, radians
 
-from pygame.font import Font
 from pygame.image import load
 from pygame.math import Vector2
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
-from pygame.transform import scale, scale2x
+from pygame.transform import scale
 
 from .constants import GRAVITY, SCREEN_SIZE, WHITE
 from .texts import DamageText
@@ -125,14 +124,14 @@ class Gold(Sprite):
         elif amount < 4:
             i = 2
         elif amount < 8:
-            i = 4
-        elif amount < 16:
-            i = 8
-        elif amount < 32:
-            i = 16
+            i = 5
+        elif amount < 15:
+            i = 10
+        elif amount < 35:
+            i = 25
         else:
-            i = 32
-        self.image = scale2x(load(f"data/img/gold/{i}.png").convert_alpha())
+            i = 50
+        self.image = load(f"data/img/gold/{i}.png").convert_alpha()
         self.rect = self.image.get_rect(midbottom=position)
         self.vel_y = 0
 

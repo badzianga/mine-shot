@@ -2,7 +2,7 @@ from math import atan2, cos, floor, radians, sin
 from random import choice, randint
 
 from pygame.math import Vector2
-from pygame.transform import flip
+from pygame.transform import flip, smoothscale
 from pygame.rect import Rect
 from pygame.sprite import Group, Sprite
 from pygame.surface import Surface
@@ -15,12 +15,20 @@ from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
+    def __init__(self, position: tuple, images: tuple, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
         super().__init__()
 
-        # image - temporarily just a single-color surface
-        self.image = Surface((TILE_SIZE // 2, TILE_SIZE - 8))
-        self.image.fill(BLUE)
+        self.animations = {"idle": [], "run": []}
+        for image in images[0]:
+            self.animations["idle"].append(smoothscale(image, (image.get_width() * 1.5, image.get_height() * 1.5)))
+        for image in images[1]:
+            self.animations["run"].append(smoothscale(image, (image.get_width() * 1.5, image.get_height() * 1.5)))
+        self.animations["idle"] = tuple(self.animations["idle"])
+        self.animations["run"] = tuple(self.animations["run"])
+        self.frame_index = 0
+        self.action = "idle"
+        self.cooldowns = {"idle": 0.15, "run": 0.30}
+        self.image = self.animations[self.action][self.frame_index]
         self.flip = False
 
         # collision rect
@@ -91,6 +99,11 @@ class Player(Sprite):
             color = RED
         self.texts.add(DamageText((randint(self.rect.left, self.rect.right), randint(self.rect.top - 8, self.rect.top + 8)), str(damage), color))
         self.invincible = True
+
+    def update_action(self, new_action: str):
+        if new_action != self.action:
+            self.action = new_action
+            self.frame_index = 0
 
     def check_horizontal_collisions(self, tiles: set):
         for tile in tiles:
@@ -250,15 +263,19 @@ class Player(Sprite):
         if self.left:
             if not self.climbing:
                 self.vector.x = -self.speed
+                self.update_action("run")
             self.flip = True
         # or move right
         elif self.right:
             if not self.climbing:
                 self.vector.x = self.speed
+                self.update_action("run")
             self.flip = False
         # or stop moving
         else:
             self.vector.x = 0
+            if not self.climbing:
+                self.update_action("idle")
         # jump (from ground or from ladder)
         if (self.jump and self.on_ground) or (self.jump and self.climbing):
             self.vector.y = self.jump_speed
@@ -287,6 +304,13 @@ class Player(Sprite):
             if self.invincibility_duration <= 0:
                 self.invincibility_duration = 90
                 self.invincible = False
+
+        # change animation frame
+        self.frame_index += self.cooldowns[self.action]
+        if self.frame_index >= len(self.animations[self.action]):
+            self.frame_index = 0
+        # set new frame to the image and flip it if necessary
+        self.image = flip(self.animations[self.action][floor(self.frame_index)], self.flip, False)
 
         # blinking if damaged
         if self.invincible:

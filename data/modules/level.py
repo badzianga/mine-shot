@@ -99,6 +99,7 @@ class Level:
         ladder_img = load_image("data/img/ladder.png").convert_alpha()
         platforms_imgs = load_images("data/img/platforms/", "platform_", 1, 1)
         torch_imgs = load_images("data/img/torch", "torch_", 1, 1)
+        player_images = load_images("data/img/player/idle", "idle_", 1, 1), load_images("data/img/player/run", "run_", 1, 1)
         small_spider_imgs = (load_images("data/img/spider_small/idle", "spider_i_", 2, 1), load_images("data/img/spider_small/run", "spider_r_", 2, 1))
         big_spider_imgs = (load_images("data/img/spider_big/idle", "spider_", 1, 1), load_images("data/img/spider_big/run", "spider_", 1, 1))
         slimes_imgs = tuple([load_images(f"data/img/slimes/{color}", "slime_", 1, 1) for color in ("black", "blue", "green", "red", "yellow")])
@@ -187,7 +188,7 @@ class Level:
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
                     if self.doors_data[self.current_map][f"{x};{y}"] == "player":
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
-                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
                     else:
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
@@ -213,9 +214,9 @@ class Level:
         # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
-            self.player = Player(door_pos.midbottom, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player(door_pos.midbottom, player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         elif very_important_variable is not None:
-            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), player_images, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
         
         # center scroll to the player
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)

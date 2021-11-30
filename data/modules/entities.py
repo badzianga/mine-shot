@@ -16,7 +16,7 @@ from .texts import DamageText
 
 
 class Player(Sprite):
-    def __init__(self, position: tuple, images: tuple, selected_gun: str, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int):
+    def __init__(self, position: tuple, images: tuple, selected_gun: str, enemies: Group, gold_group: Group, bullet_group: Group, texts: Group, upgrades: list, gold: int, health: int, max_health: int):
         super().__init__()
 
         self.animations = {"idle": [], "run": [], "climb": images[2], "jump": []}
@@ -44,7 +44,7 @@ class Player(Sprite):
         self.climbing = False
 
         # health stuff
-        self.max_health = 20
+        self.max_health = max_health
         self.health = health
         self.max_mana = 100
         self.mana = self.max_mana
@@ -85,9 +85,6 @@ class Player(Sprite):
         for upgrade in upgrades:
             if upgrade == "BulletSpeedUp":
                 self.gun.cooldown = int(self.gun.cooldown * 0.8)
-            elif upgrade == "HealthUp":
-                self.max_health += 10
-                self.health += 10
             elif upgrade == "ManaRegen":
                 self.mana_regen += 0.05
             elif upgrade == "ManaUp":
@@ -461,7 +458,7 @@ class Slime(EnemyBase):
     def draw(self, screen: Surface, scroll: list):
         screen.blit(self.image, (self.rect.x - 8 - scroll[0], self.rect.y - 16 - scroll[1]))
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect, constraints: Group):
         if self.vector.x > 0:
             self.flip = True
         elif self.vector.x < 0:
@@ -533,7 +530,12 @@ class Spider(EnemyBase):
             self.action = new_action
             self.frame_index = 0
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+    def check_constraints(self, constraints: set):
+        for constraint in constraints:
+            if self.rect.colliderect(constraint):
+                self.vector.x *= -1
+
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect, constraints: Group):
         if not self.idling:
             # random idle
             if randint(1, 50) == 1:
@@ -544,6 +546,7 @@ class Spider(EnemyBase):
             # update x position and check for horizontal collisions
             self.rect.x += self.vector.x
             self.check_horizontal_collisions(tiles)
+            self.check_constraints(constraints)
         else:
             self.idling_counter -= 1
             # after idle - stop idling, randomly select direction of moving
@@ -603,7 +606,12 @@ class SpiderAdvanced(EnemyBase):
             self.action = new_action
             self.frame_index = 0
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+    def check_constraints(self, constraints: set):
+        for constraint in constraints:
+            if self.rect.colliderect(constraint):
+                self.vector.x *= -1
+
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect, contraints: Group):
         if not self.idling:
             # random idle
             if randint(1, 50) == 1:
@@ -614,6 +622,7 @@ class SpiderAdvanced(EnemyBase):
             # update x position and check for horizontal collisions
             self.rect.x += self.vector.x
             self.check_horizontal_collisions(tiles)
+            self.check_constraints(contraints)
         else:
             self.idling_counter -= 1
             # after idle - stop idling, randomly select direction of moving
@@ -747,7 +756,7 @@ class Bat(EnemyBase):
             self.action = new_action
             self.frame_index = 0
 
-    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect):
+    def update(self, screen: Surface, scroll: list, tiles: set, platforms: set, player_rect: Rect, constraints: Group):
         if self.action == "fly":
             if self.vector.x > 0:
                 self.flip = True

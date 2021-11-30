@@ -3,6 +3,7 @@ from json import load as load_json
 from random import choice, randint
 
 from numpy import loadtxt, uint8
+from numpy.lib.shape_base import tile
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT
@@ -34,6 +35,7 @@ class Level:
         self.gold_group = Group()
         self.doors = Group()
         self.shop_upgrades = Group()
+        self.constraints = []
 
         self.save_data = save_data
         self.score = 0
@@ -85,9 +87,10 @@ class Level:
         self.randomized_upgrades = []
         self.bought_upgrades = []
 
-        self.player_gold = 0
+        self.player_gold = 100
         self.selected_gun = "shotgun"
         self.player_health = 20
+        self.player_max_health = 20
         self.score = 0
 
         # load level - create game map with chunks
@@ -114,6 +117,10 @@ class Level:
         # load map and decorations
         map_data = loadtxt(f"data/maps/{self.current_map}.csv", dtype=uint8, delimiter=',')
         decorations_data = loadtxt(f"data/maps/{self.current_map}_decorations.csv", dtype=uint8, delimiter=',')
+        if self.current_map not in ("level_0", "highscores", "achievements", "shop"):
+            enemies_data = loadtxt(f"data/maps/{self.current_map}_enemies.csv", dtype=uint8, delimiter=',')
+        else:
+            enemies_data = []
         
         # update level_0
         if self.current_map == "level_0":
@@ -191,7 +198,7 @@ class Level:
                     image_rect = doors[cell].get_rect(midbottom=(x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE))
                     if self.doors_data[self.current_map][f"{x};{y}"] == "player":
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], None, False))
-                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+                        self.player = Player((x * TILE_SIZE + TILE_SIZE // 2, y * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health, self.player_max_health)
                     else:
                         self.doors.add(Door((image_rect.x, image_rect.y), doors[cell], self.doors_data[self.current_map][f"{x};{y}"], True))
                 elif cell in (7, 8):
@@ -224,12 +231,27 @@ class Level:
                 if cell != 0:
                     self.game_map[current_chunk]["decorations"].add(Tile((x * TILE_SIZE, y * TILE_SIZE), decorations_imgs[cell - 1]))
 
+        # load enemies data
+        for y, row in enumerate(enemies_data):
+            for x, cell in enumerate(row):
+                if cell != 0:
+                    if cell == 1:
+                        self.enemies.add(Slime((x * TILE_SIZE, y * TILE_SIZE), choice(slimes_imgs), self.gold_group))
+                    elif cell == 2:
+                        self.enemies.add(Spider((x * TILE_SIZE, y * TILE_SIZE), small_spider_imgs, self.gold_group))
+                    elif cell == 3:
+                        self.enemies.add(SpiderAdvanced((x * TILE_SIZE, y * TILE_SIZE), big_spider_imgs, self.gold_group))
+                    elif cell == 4:
+                        self.enemies.add(Bat((x * TILE_SIZE, y * TILE_SIZE), bat_imgs, self.gold_group))
+                    elif cell == 5:
+                        self.constraints.append(Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))
+
         # positions in main rooms
         if len(self.doors) == 1:  # achievements/highscores
             door_pos = self.doors.sprites()[0].rect
-            self.player = Player(door_pos.midbottom, player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player(door_pos.midbottom, player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health, self.player_max_health)
         elif very_important_variable is not None:
-            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health)
+            self.player = Player((very_important_variable[0] * TILE_SIZE + TILE_SIZE // 2, very_important_variable[1] * TILE_SIZE + TILE_SIZE), player_images, self.selected_gun, self.enemies, self.gold_group, self.bullet_group, self.texts, self.bought_upgrades, self.player_gold, self.player_health, self.player_max_health)
         
         # center scroll to the player
         self.true_scroll[0] += (self.player.rect.x - self.true_scroll[0] - 618)
@@ -272,6 +294,7 @@ class Level:
         self.gold_group.empty()
         self.doors.empty()
         self.shop_upgrades.empty()
+        self.constraints.clear()
         # reset scroll values
         self.true_scroll[0] = 0
         self.true_scroll[1] = 0
@@ -414,7 +437,7 @@ class Level:
         # update and draw enemies
         for enemy in self.enemies:
             if active_rect.colliderect(enemy.rect):
-                enemy.update(self.screen, self.scroll, objects["collidable"], objects["platforms"], self.player.rect)
+                enemy.update(self.screen, self.scroll, objects["collidable"], objects["platforms"], self.player.rect, self.constraints)
 
         # update and draw player
         score = self.player.update(self.screen, self.scroll, objects)
@@ -499,6 +522,7 @@ class Level:
 
                     self.player_gold = self.player.gold
                     self.player_health = self.player.health
+                    self.player_max_health = self.player.max_health
                     screen_fade(self.screen, self.clock, True)
                     self.restart_level()
                     self.load_level(coords)

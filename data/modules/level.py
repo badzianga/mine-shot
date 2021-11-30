@@ -39,7 +39,7 @@ class Level:
 
         self.save_data = save_data
         self.score = 0
-        self.current_map = "level_0"  # entrance level
+        self.current_map = "level_1"  # entrance level
         self.next_map = ""
         self.current_level = 0
         self.last_door_position = None
@@ -87,7 +87,7 @@ class Level:
         self.randomized_upgrades = []
         self.bought_upgrades = []
 
-        self.player_gold = 100
+        self.player_gold = 0
         self.selected_gun = "shotgun"
         self.player_health = 20
         self.player_max_health = 20
@@ -97,6 +97,10 @@ class Level:
         self.load_level()
 
     def load_level(self, very_important_variable=None):
+        # loop levels
+        if self.current_map == "level_12":
+            self.current_map = "level_1"
+
         # images
         stone_img = load_image("data/img/stone.png").convert()
         bg_stone_img = scale2x(scale2x(load_image("data/img/background_stone.png").convert()))
@@ -121,7 +125,7 @@ class Level:
             enemies_data = loadtxt(f"data/maps/{self.current_map}_enemies.csv", dtype=uint8, delimiter=',')
         else:
             enemies_data = []
-        
+
         # update level_0
         if self.current_map == "level_0":
             # highscores door

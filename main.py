@@ -10,6 +10,7 @@ from pygame import init, quit
 from pygame.display import set_caption, set_mode, toggle_fullscreen, set_icon
 from pygame.display import update as update_display
 from pygame.event import get as get_events
+from pygame.event import set_allowed as set_allowed_events
 from pygame.font import Font
 from pygame.image import fromstring, tostring
 from pygame.image import load as load_image
@@ -45,6 +46,8 @@ set_visible(False)
 clock = Clock()
 
 fps_font = Font("data/fonts/Pixellari.ttf", 40)
+
+set_allowed_events((QUIT, KEYDOWN, KEYUP))
 
 
 # Credits ------------------------------------------------------------------- #

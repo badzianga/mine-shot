@@ -1,9 +1,8 @@
-from json import dump as dump_to_json, load
+from json import dump as dump_to_json
 from json import load as load_json
 from random import choice, randint
 
 from numpy import loadtxt, uint8
-from numpy.lib.shape_base import tile
 from pygame.font import Font
 from pygame.image import load as load_image
 from pygame.locals import BLEND_RGBA_MULT

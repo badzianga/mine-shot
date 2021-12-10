@@ -340,7 +340,10 @@ class Player(Sprite):
         # draw gun
         if not self.climbing:
             if not self.on_ground:
-                offset_y = -8
+                if self.up:
+                    offset_y = -16
+                else:
+                    offset_y = -8
             else:
                 offset_y = 0
 
@@ -349,21 +352,21 @@ class Player(Sprite):
                     screen.blit(self.gun_images[0], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
                 else:
                     image = flip(self.gun_images[0], True, False)
-                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1] + offset_y))
                     screen.blit(image, image_rect)
             elif self.up:
                 if not self.flip:
                     screen.blit(self.gun_images[1], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
                 else:
                     image = flip(self.gun_images[1], True, False)
-                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1] + offset_y))
                     screen.blit(image, image_rect)
             elif self.down:
                 if not self.flip:
                     screen.blit(self.gun_images[2], (self.rect.x - scroll[0], self.rect.y - scroll[1] + offset_y))
                 else:
                     image = flip(self.gun_images[2], True, False)
-                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1]))
+                    image_rect = image.get_rect(topright=(self.rect.right - scroll[0], self.rect.y - scroll[1] + offset_y))
                     screen.blit(image, image_rect)
 
         return score

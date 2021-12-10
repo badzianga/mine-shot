@@ -13,7 +13,7 @@ from pygame.time import Clock
 from pygame.transform import scale2x
 
 from .classes import HealthBar, ManaBar
-from .constants import BLACK, CHUNK_SIZE, SCREEN_SIZE, TILE_SIZE, WHITE
+from .constants import BLACK, CHUNK_SIZE, DARK_GRAY, SCREEN_SIZE, TILE_SIZE, WHITE
 from .entities import Bat, Player, Slime, Spider, SpiderAdvanced
 from .functions import load_images, screen_fade
 from .tiles import Door, Lava, LavaTile, Tile, Torch, Upgrade, Platform
@@ -65,6 +65,7 @@ class Level:
 
         # font
         self.font = Font("data/fonts/Pixellari.ttf", 32)
+        self.small_font = Font("data/fonts/Pixellari.ttf", 24)
 
         # earthquake
         self.screen_shake = 0
@@ -410,6 +411,49 @@ class Level:
                 text_surf = self.font.render(f"{i + 1}. {score}", False, WHITE)
                 text_rect = text_surf.get_rect(center=(13 * TILE_SIZE - self.scroll[0], 7 * TILE_SIZE - 32 + i * 40 - self.scroll[1]))
                 self.screen.blit(text_surf, text_rect)
+
+        # draw achievements
+        if self.current_map == "achievements":
+            if self.save_data["kills"] < 1000:
+                if self.save_data["kills"] < 999:
+                    text_surf = self.font.render(f"Kill {1000 - self.save_data['kills']} enemies", False, WHITE)
+                else:
+                    text_surf = self.font.render(f"Kill {1000 - self.save_data['kills']} enemy", False, WHITE)
+                text_rect = text_surf.get_rect(center=(23 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                text_surf = self.font.render("to unlock shotgun", False, WHITE)
+                text_rect = text_surf.get_rect(center=(23 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE + 40 - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                kills_color = DARK_GRAY
+            else:
+                text_surf = self.font.render(f"You killed {self.save_data['kills']} enemies", False, WHITE)
+                text_rect = text_surf.get_rect(center=(23 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                kills_color = WHITE
+
+            if self.save_data["depth"] < 10:
+                text_surf = self.font.render(f"Complete level 10", False, WHITE)
+                text_rect = text_surf.get_rect(center=(28 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                text_surf = self.font.render("to unlock minigun", False, WHITE)
+                text_rect = text_surf.get_rect(center=(28 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE + 40 - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                depth_color = DARK_GRAY
+            else:
+                text_surf = self.font.render(f"Deepest level: {self.save_data['depth']}", False, WHITE)
+                text_rect = text_surf.get_rect(center=(28 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE - self.scroll[1]))
+                self.screen.blit(text_surf, text_rect)
+                depth_color = WHITE
+
+            text_surf = self.small_font.render(f"Press 1 to select handgun", False, DARK_GRAY)
+            text_rect = text_surf.get_rect(center=(18 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE - 10 - self.scroll[1]))
+            self.screen.blit(text_surf, text_rect)
+            text_surf = self.small_font.render("Press 2 to select shotgun", False, kills_color)
+            text_rect = text_surf.get_rect(center=(18 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE + 20 - self.scroll[1]))
+            self.screen.blit(text_surf, text_rect)
+            text_surf = self.small_font.render("Press 3 to select minigun", False, depth_color)
+            text_rect = text_surf.get_rect(center=(18 * TILE_SIZE - self.scroll[0] + 32, 8 * TILE_SIZE + 50 - self.scroll[1]))
+            self.screen.blit(text_surf, text_rect)
 
         # update and draw animated tiles
         for tile in objects["animated_tiles"]:

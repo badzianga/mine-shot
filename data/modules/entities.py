@@ -40,7 +40,7 @@ class Player(Sprite):
         self.speed = 8
         self.vector = Vector2(0, 0)  # direction of movement
         self.jump_speed = -18
-        self.on_ground = False
+        self.on_ground = True
         self.climbing = False
 
         # health stuff
